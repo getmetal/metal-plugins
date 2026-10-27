@@ -195,21 +195,23 @@ def frontmatter_fields(lines: list[str]) -> dict[str, str]:
 
 def check_skills(layout: Layout, report: Report) -> None:
     seen: dict[str, Path] = {}
+    skills = []
     for root in layout.skill_roots():
         if not root.is_dir():
             report.error(root, "skill directory missing")
             continue
-        for skill in sorted(p for p in root.iterdir() if p.is_dir()):
-            check_skill(skill, report)
-            if skill.name in seen:
-                report.error(skill, f"skill name also used by {seen[skill.name]}")
-            seen[skill.name] = skill
+        skills.extend(sorted(p for p in root.iterdir() if p.is_dir()))
+    for skill in skills:
+        check_skill(skill, skills, report)
+        if skill.name in seen:
+            report.error(skill, f"skill name also used by {seen[skill.name]}")
+        seen[skill.name] = skill
     for stray in sorted(layout.plugin.rglob("SKILL.md")):
         if not any(stray.parent.parent == root for root in layout.skill_roots()):
             report.error(stray, "SKILL.md outside skills/<name>/ or synced-skills/<name>/ does not load")
 
 
-def check_skill(skill: Path, report: Report) -> None:
+def check_skill(skill: Path, skills: list[Path], report: Report) -> None:
     skill_md = skill / "SKILL.md"
     if not skill_md.is_file():
         report.error(skill, "missing SKILL.md")
@@ -230,18 +232,31 @@ def check_skill(skill: Path, report: Report) -> None:
     description = fields.get("description", "")
     if not description or len(description) > MAX_DESCRIPTION_CHARS:
         report.error(skill_md, f"description must be 1 to {MAX_DESCRIPTION_CHARS} characters")
-    check_skill_text(skill, report)
+    check_skill_text(skill, skills, report)
 
 
-def check_skill_text(skill: Path, report: Report) -> None:
+def check_skill_text(skill: Path, skills: list[Path], report: Report) -> None:
     for md in sorted(skill.rglob("*.md")):
         for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
             for legacy in LEGACY_SKILL_NAME.findall(line):
                 report.error(f"{md}:{lineno}", f"{legacy!r} is a metal-skills name; use the plugin skill name")
             for mention in REFERENCE_MENTION.findall(line):
-                path = mention.rstrip(".")
-                if not (skill / path).exists() and not any((other / path).exists() for other in skill.parent.iterdir()):
-                    report.error(f"{md}:{lineno}", f"broken reference {path!r}")
+                check_reference(skill, skills, mention.rstrip("."), line, f"{md}:{lineno}", report)
+
+
+def check_reference(skill: Path, skills: list[Path], path: str, line: str, where: str, report: Report) -> None:
+    """A references/ path resolves in its own skill, or in a skill the line names.
+
+    A model resolves a bare references/ path against the skill it is reading,
+    so a path that exists only in another skill must name that skill.
+    """
+    if (skill / path).exists():
+        return
+    owners = [other.name for other in skills if other != skill and (other / path).exists()]
+    if not owners:
+        report.error(where, f"broken reference {path!r}")
+    elif not any(re.search(rf"(?<![\w-]){re.escape(owner)}(?![\w-])", line) for owner in owners):
+        report.error(where, f"{path!r} exists only in {', '.join(owners)}; name that skill on the same line")
 
 
 def check_no_bin(layout: Layout, report: Report) -> None:

@@ -142,6 +142,16 @@ class SkillTest(RepoFixture):
         self.replace(self.skill_md, "references/workflow-run-diagnosis-rubric.md", "references/missing.md")
         self.assert_error("broken reference 'references/missing.md'")
 
+    def test_sibling_reference_must_name_its_skill(self) -> None:
+        with self.skill_md.open("a", encoding="utf-8") as f:
+            f.write("\nSee `references/building-tools.md` for the error codes.\n")
+        self.assert_error("'references/building-tools.md' exists only in workflow-building; name that skill on the same line")
+
+    def test_sibling_reference_that_names_its_skill_passes(self) -> None:
+        with self.skill_md.open("a", encoding="utf-8") as f:
+            f.write("\nSee the `workflow-building` skill's `references/building-tools.md` for the error codes.\n")
+        self.assertEqual(check_all(self.layout), [])
+
     def test_duplicate_name_across_roots(self) -> None:
         shutil.copytree(self.skill_md.parent, self.layout.plugin / "skills" / "workflow-debugging")
         self.assert_error("skill name also used by")

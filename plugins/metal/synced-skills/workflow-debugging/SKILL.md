@@ -140,7 +140,7 @@ Review payload and editable-review contracts are documented in the `workflow-bui
 - The run projection normalizes each output section `type` to `text` or `html`, preserves a configured title including an empty title, and generates a title only for a synthesized section. Inspect these projected fields.
 - Completion notification conditions are templates that must render to a boolean. If the condition renders false or errors, the run still completes and persists output but skips the notification.
 - Evidence lives in the run detail `outputs` bundle and `outputConfig`.
-- To hand the user a file rather than describing it, see `references/mcp-run-evidence.md`'s "Downloading A Run's Output Or Artifact File" section. A populated URL on an actual output, document, or artifact record is a time-boxed download link fetched outside the MCP call. A missing URL is inconclusive; refresh the evidence or report download availability as unknown.
+- To hand the user a file rather than describing it, see the `workflow-building` skill's `references/mcp-run-evidence.md`, section "Downloading A Run's Output Or Artifact File". A populated URL on an actual output, document, or artifact record is a time-boxed download link fetched outside the MCP call. A missing URL is inconclusive; refresh the evidence or report download availability as unknown.
 
 ## Diagnosis Rubric
 

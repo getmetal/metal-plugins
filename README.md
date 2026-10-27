@@ -18,7 +18,14 @@ codex plugin marketplace add getmetal/metal-plugins
 codex plugin add metal@metal
 ```
 
-The repository is private, so each user needs read access to it. A claude.ai admin can instead upload the release zip in Organization settings > Plugins & skills.
+The repository is private, so a user who installs with these commands needs read access to it.
+
+An organization can install the plugin for its members instead:
+
+- **claude.ai:** an admin uploads the release zip in Organization settings > Plugins & skills.
+- **ChatGPT Business or Enterprise:** a workspace admin imports this repository in Admin > Plugins > Add > Import marketplace, with a GitHub account that can read it. ChatGPT marks a plugin that declares an MCP server as Desktop only, so the plugin works in the ChatGPT desktop app and not in ChatGPT on the web. See OpenAI's [plugin management](https://learn.chatgpt.com/docs/enterprise/plugin-management) page.
+
+Neither route has been tested with this plugin yet. Each member still signs in to Metal separately.
 
 ## Skills
 
