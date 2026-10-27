@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "metal": {
+      "type": "http",
+      "url": "https://mcp.metal.ai/mcp"
+    }
+  }
+}

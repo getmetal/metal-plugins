@@ -1,0 +1,72 @@
+name: Check and release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # Pinned so a new Claude Code or Codex release cannot change the verdict unannounced.
+  CLAUDE_CODE_VERSION: 2.1.311
+  CODEX_VERSION: 0.164.0
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test the checks and the packager
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check manifests, marketplaces, MCP config and skills
+        run: python3 scripts/check.py
+      - name: Validate with Claude Code
+        run: |
+          npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" plugin validate --strict ./plugins/metal
+          npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" plugin validate --strict .
+      - name: Install with Codex
+        run: python3 scripts/codex_install_check.py npx -y "@openai/codex@${CODEX_VERSION}"
+      - name: Build the release zip
+        run: python3 scripts/package.py
+
+  release:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve version and tag
+        id: version
+        run: |
+          echo "version=$(python3 scripts/package.py --print-version)" >> "$GITHUB_OUTPUT"
+          echo "tag=$(python3 scripts/package.py --print-tag)" >> "$GITHUB_OUTPUT"
+      - name: Check for an existing release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG is already released; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the release zip
+        if: steps.existing.outputs.exists == 'false'
+        run: python3 scripts/package.py
+      - name: Publish the release
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: >
+          gh release create "$TAG" "dist/metal-${VERSION}.zip"
+          --target "$GITHUB_SHA"
+          --title "metal v${VERSION}"
+          --generate-notes

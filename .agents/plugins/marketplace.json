@@ -1,0 +1,20 @@
+{
+  "name": "metal",
+  "interface": {
+    "displayName": "Metal"
+  },
+  "plugins": [
+    {
+      "name": "metal",
+      "source": {
+        "source": "local",
+        "path": "./plugins/metal"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
