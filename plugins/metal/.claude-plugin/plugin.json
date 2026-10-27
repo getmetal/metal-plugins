@@ -1,11 +1,14 @@
 {
   "name": "metal",
   "displayName": "Metal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connects the Metal MCP server and adds Metal's workflow skills.",
   "author": {
     "name": "Metal"
   },
   "repository": "https://github.com/getmetal/metal-plugins",
-  "skills": ["./synced-skills/"]
+  "license": "Apache-2.0",
+  "skills": [
+    "./synced-skills/"
+  ]
 }

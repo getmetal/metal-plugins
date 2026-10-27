@@ -39,6 +39,10 @@ REFERENCE_MENTION = re.compile(r"references/[A-Za-z0-9_\-./]+")
 
 VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
+# The repository is Apache-2.0. Installs and the release zip carry only the
+# plugin folder, so it holds its own copy of the license.
+LICENSE_SPDX = "Apache-2.0"
+
 
 @dataclass
 class Layout:
@@ -259,6 +263,20 @@ def check_reference(skill: Path, skills: list[Path], path: str, line: str, where
         report.error(where, f"{path!r} exists only in {', '.join(owners)}; name that skill on the same line")
 
 
+def check_license(layout: Layout, report: Report) -> None:
+    root_license = layout.root / "LICENSE"
+    plugin_license = layout.plugin / "LICENSE"
+    if not root_license.is_file():
+        report.error(root_license, "missing")
+    elif not plugin_license.is_file():
+        report.error(plugin_license, "missing; installs carry only the plugin folder")
+    elif plugin_license.read_bytes() != root_license.read_bytes():
+        report.error(plugin_license, "must be identical to the repository LICENSE")
+    claude = load_json(layout.claude_manifest, report)
+    if claude is not None and claude.get("license") != LICENSE_SPDX:
+        report.error(layout.claude_manifest, f"license must be {LICENSE_SPDX!r}")
+
+
 def check_no_bin(layout: Layout, report: Report) -> None:
     # claude.ai rejects a plugin with a top-level bin/ directory.
     if (layout.plugin / "bin").exists():
@@ -272,6 +290,7 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_mcp_config(layout, report)
     check_marketplaces(layout, report)
     check_skills(layout, report)
+    check_license(layout, report)
     check_no_bin(layout, report)
     return report.errors
 

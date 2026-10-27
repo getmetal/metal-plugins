@@ -8,4 +8,4 @@ The plugin adds three workflow skills:
 - `running-workflows`: start, rerun or approve a workflow run.
 - `workflow-debugging`: diagnose why an existing run behaved as it did.
 
-The repository README covers installation and releases.
+The repository README covers installation and releases. The plugin is licensed under the Apache License 2.0; see `LICENSE`.
