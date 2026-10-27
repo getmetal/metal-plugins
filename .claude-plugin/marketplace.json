@@ -1,0 +1,14 @@
+{
+  "name": "metal",
+  "description": "Metal plugins for Claude",
+  "owner": {
+    "name": "Metal"
+  },
+  "plugins": [
+    {
+      "name": "metal",
+      "source": "./plugins/metal",
+      "description": "Connects the Metal MCP server and adds Metal's workflow skills."
+    }
+  ]
+}
