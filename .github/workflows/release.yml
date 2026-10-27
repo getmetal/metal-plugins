@@ -6,8 +6,9 @@ on:
   pull_request:
 
 env:
-  # Pinned so a new Claude Code release cannot change the verdict unannounced.
+  # Pinned so a new Claude Code or Codex release cannot change the verdict unannounced.
   CLAUDE_CODE_VERSION: 2.1.311
+  CODEX_VERSION: 0.164.0
 
 jobs:
   check:
@@ -25,6 +26,8 @@ jobs:
         run: |
           npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" plugin validate --strict ./plugins/metal
           npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" plugin validate --strict .
+      - name: Install with Codex
+        run: python3 scripts/codex_install_check.py npx -y "@openai/codex@${CODEX_VERSION}"
       - name: Build the release zip
         run: python3 scripts/package.py
 

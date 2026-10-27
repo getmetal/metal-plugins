@@ -50,6 +50,7 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 scripts/check.py
 claude plugin validate --strict ./plugins/metal
 claude plugin validate --strict .
+python3 scripts/codex_install_check.py
 ```
 
 `scripts/check.py` checks that:
@@ -59,7 +60,9 @@ claude plugin validate --strict .
 - `.mcp.json` holds only the Metal server;
 - each skill's frontmatter uses only the keys that claude.ai accepts: `name`, `description`, `license`, `compatibility`, `metadata` and `allowed-tools`.
 
-CI runs the same commands on every pull request.
+Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` and `synced-skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
+
+CI runs the same commands on every pull request, with Claude Code and Codex pinned.
 
 ## Releases
 
