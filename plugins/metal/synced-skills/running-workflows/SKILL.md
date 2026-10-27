@@ -1,8 +1,6 @@
 ---
 name: running-workflows
 description: Applies when a user wants to start, test, validate, or reproduce a Metal workflow through the Metal MCP, rerun a terminal run from a selected step, or approve or reject a paused human-review step, including cases where declared inputs must first be resolved; read-only investigation of an existing run belongs to workflow-debugging.
-metadata:
-  source: metal-skills v3.0.8 skills/metal-workflow-running
 ---
 
 # Metal Workflow Running

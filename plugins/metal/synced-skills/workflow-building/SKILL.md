@@ -1,8 +1,6 @@
 ---
 name: workflow-building
 description: Applies when a Metal workflow definition, step configuration, input or output contract, trigger, or template-backed document step must be inspected or changed through the Metal MCP; starting or acting on a run belongs to running-workflows, and read-only run diagnosis belongs to workflow-debugging.
-metadata:
-  source: metal-skills v3.0.8 skills/metal-workflow-building
 ---
 
 # Metal Workflow Building

@@ -7,5 +7,5 @@
     "name": "Metal"
   },
   "repository": "https://github.com/getmetal/metal-plugins",
-  "skills": ["./generated-skills/"]
+  "skills": ["./synced-skills/"]
 }

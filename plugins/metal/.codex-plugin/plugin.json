@@ -6,7 +6,7 @@
     "name": "Metal"
   },
   "repository": "https://github.com/getmetal/metal-plugins",
-  "skills": ["./skills/", "./generated-skills/"],
+  "skills": ["./skills/", "./synced-skills/"],
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Metal",

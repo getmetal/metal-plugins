@@ -38,10 +38,10 @@ The repository is private, so each user needs read access to it. A claude.ai adm
 | `plugins/metal/.codex-plugin/plugin.json` | The Codex manifest |
 | `plugins/metal/.mcp.json` | The Metal MCP server, shared by both manifests |
 | `plugins/metal/skills/` | Hand-written skills |
-| `plugins/metal/generated-skills/` | Skills that the sync from `metal-backend` owns |
+| `plugins/metal/synced-skills/` | Skills that the sync from `metal-backend` owns |
 | `scripts/` | The repository checks and the release packager |
 
-A sync from `metal-backend` will own `generated-skills/`. For now, the three workflow skills there are copies of metal-skills v3.0.8, renamed to match their `metal-backend` builtins. Each one records its source in its `metadata` frontmatter. Generated versions will replace them.
+A sync from `metal-backend` will own `synced-skills/`. For now, the three workflow skills there are copies of metal-skills v3.0.8 (`7fa35e5`), renamed to match their `metal-backend` builtins. Versions translated from the builtins will replace them.
 
 ## Checks
 

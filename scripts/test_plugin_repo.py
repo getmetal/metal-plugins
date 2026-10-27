@@ -25,7 +25,7 @@ class RepoFixture(unittest.TestCase):
         for name in ("plugins", ".claude-plugin", ".agents"):
             shutil.copytree(REPO / name, self.tmp / name)
         self.layout = Layout(self.tmp)
-        self.skill_md = self.layout.plugin / "generated-skills" / "workflow-debugging" / "SKILL.md"
+        self.skill_md = self.layout.plugin / "synced-skills" / "workflow-debugging" / "SKILL.md"
 
     def edit_json(self, path: Path, change) -> None:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -67,7 +67,7 @@ class ManifestTest(RepoFixture):
         self.edit_json(self.layout.codex_manifest, lambda m: m.update(skills="./skills/"))
         self.assert_error("skills must list exactly")
 
-    def test_claude_must_add_generated_skills(self) -> None:
+    def test_claude_must_add_synced_skills(self) -> None:
         self.edit_json(self.layout.claude_manifest, lambda m: m.pop("skills"))
         self.assert_error("skills must add exactly")
 
@@ -110,11 +110,11 @@ class MarketplaceTest(RepoFixture):
 
 class SkillTest(RepoFixture):
     def test_frontmatter_key_outside_allow_list(self) -> None:
-        self.replace(self.skill_md, "metadata:", "version: 3.0.8\nmetadata:")
+        self.replace(self.skill_md, "\n---\n", "\nversion: 3.0.8\n---\n")
         self.assert_error("frontmatter key 'version' is not one claude.ai accepts")
 
     def test_nested_metadata_lines_are_not_keys(self) -> None:
-        self.replace(self.skill_md, "metadata:\n", "metadata:\n  version: 3.0.8\n")
+        self.replace(self.skill_md, "\n---\n", "\nmetadata:\n  version: 3.0.8\n---\n")
         self.assertEqual(check_all(self.layout), [])
 
     def test_name_must_match_directory(self) -> None:
@@ -132,7 +132,11 @@ class SkillTest(RepoFixture):
 
     def test_legacy_name_in_description(self) -> None:
         self.replace(self.skill_md, "belong to workflow-building", "belong to metal-workflow-building")
-        self.assert_error("frontmatter description names a metal-skills skill")
+        self.assert_error(":3: 'metal-workflow-building' is a metal-skills name")
+
+    def test_legacy_name_in_metadata(self) -> None:
+        self.replace(self.skill_md, "\n---\n", "\nmetadata:\n  source: metal-skills skills/metal-workflow-debugging\n---\n")
+        self.assert_error(":5: 'metal-workflow-debugging' is a metal-skills name")
 
     def test_broken_reference(self) -> None:
         self.replace(self.skill_md, "references/workflow-run-diagnosis-rubric.md", "references/missing.md")
@@ -143,7 +147,7 @@ class SkillTest(RepoFixture):
         self.assert_error("skill name also used by")
 
     def test_skill_outside_a_skill_root(self) -> None:
-        stray = self.layout.plugin / "generated-skills" / "workflow-debugging" / "nested" / "SKILL.md"
+        stray = self.layout.plugin / "synced-skills" / "workflow-debugging" / "nested" / "SKILL.md"
         stray.parent.mkdir()
         stray.write_text("---\nname: nested\ndescription: x\n---\n", encoding="utf-8")
         self.assert_error("does not load")
@@ -159,14 +163,14 @@ class SkillTest(RepoFixture):
 
 class PackageTest(RepoFixture):
     def test_zip_has_plugin_root_at_top(self) -> None:
-        (self.layout.plugin / "generated-skills" / ".DS_Store").write_bytes(b"x")
+        (self.layout.plugin / "synced-skills" / ".DS_Store").write_bytes(b"x")
         target = package.build(self.layout, self.tmp / "dist")
         self.assertEqual(target.name, f"metal-{plugin_version(self.layout)}.zip")
         with zipfile.ZipFile(target) as archive:
             names = archive.namelist()
         self.assertIn(".claude-plugin/plugin.json", names)
         self.assertIn(".mcp.json", names)
-        self.assertIn("generated-skills/workflow-debugging/SKILL.md", names)
+        self.assertIn("synced-skills/workflow-debugging/SKILL.md", names)
         self.assertFalse(any(".DS_Store" in n for n in names))
         self.assertFalse(any(n.startswith("plugins/") for n in names))
 

@@ -18,9 +18,9 @@ MARKETPLACE_NAME = "metal"
 PLUGIN_SOURCE = "./plugins/metal"
 
 # Hand-written skills live in Claude's default skills/ directory. Skills that
-# the Phase 2 sync owns live in generated-skills/, which only the sync writes.
+# the Phase 2 sync owns live in synced-skills/, which only the sync writes.
 HAND_WRITTEN_SKILLS = "./skills/"
-GENERATED_SKILLS = "./generated-skills/"
+SYNCED_SKILLS = "./synced-skills/"
 
 MCP_CONFIG = {"mcpServers": {"metal": {"type": "http", "url": "https://mcp.metal.ai/mcp"}}}
 
@@ -32,8 +32,7 @@ SKILL_NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_CHARS = 64
 MAX_DESCRIPTION_CHARS = 1024
 
-# The metal-skills names the copied skills were renamed from. Only the
-# frontmatter metadata may still name them, to record where a copy came from.
+# The metal-skills names the copied skills were renamed from.
 LEGACY_SKILL_NAME = re.compile(r"metal-workflow-[a-z-]+")
 
 REFERENCE_MENTION = re.compile(r"references/[A-Za-z0-9_\-./]+")
@@ -70,7 +69,7 @@ class Layout:
         return self.root / ".agents" / "plugins" / "marketplace.json"
 
     def skill_roots(self) -> list[Path]:
-        return [self.plugin / HAND_WRITTEN_SKILLS, self.plugin / GENERATED_SKILLS]
+        return [self.plugin / HAND_WRITTEN_SKILLS, self.plugin / SYNCED_SKILLS]
 
 
 @dataclass
@@ -124,9 +123,9 @@ def check_manifests(layout: Layout, report: Report) -> None:
     # only what it lists. Both must end up with the same skill roots.
     claude_skills = set(as_list(claude.get("skills"))) | {HAND_WRITTEN_SKILLS}
     codex_skills = set(as_list(codex.get("skills")))
-    expected = {HAND_WRITTEN_SKILLS, GENERATED_SKILLS}
+    expected = {HAND_WRITTEN_SKILLS, SYNCED_SKILLS}
     if claude_skills != expected:
-        report.error(layout.claude_manifest, f"skills must add exactly {GENERATED_SKILLS!r} to the default {HAND_WRITTEN_SKILLS!r}")
+        report.error(layout.claude_manifest, f"skills must add exactly {SYNCED_SKILLS!r} to the default {HAND_WRITTEN_SKILLS!r}")
     if codex_skills != expected:
         report.error(layout.codex_manifest, f"skills must list exactly {sorted(expected)}")
 
@@ -207,7 +206,7 @@ def check_skills(layout: Layout, report: Report) -> None:
             seen[skill.name] = skill
     for stray in sorted(layout.plugin.rglob("SKILL.md")):
         if not any(stray.parent.parent == root for root in layout.skill_roots()):
-            report.error(stray, "SKILL.md outside skills/<name>/ or generated-skills/<name>/ does not load")
+            report.error(stray, "SKILL.md outside skills/<name>/ or synced-skills/<name>/ does not load")
 
 
 def check_skill(skill: Path, report: Report) -> None:
@@ -236,20 +235,7 @@ def check_skill(skill: Path, report: Report) -> None:
 
 def check_skill_text(skill: Path, report: Report) -> None:
     for md in sorted(skill.rglob("*.md")):
-        text = md.read_text(encoding="utf-8")
-        body_start = 0
-        if md.name == "SKILL.md":
-            parts = split_frontmatter(text)
-            if parts is not None:
-                lines, _ = parts
-                visible = {k: v for k, v in frontmatter_fields(lines).items() if k in ("name", "description")}
-                for key, value in visible.items():
-                    if LEGACY_SKILL_NAME.search(value):
-                        report.error(md, f"frontmatter {key} names a metal-skills skill; use the plugin skill name")
-                body_start = len(lines) + 2
-        for lineno, line in enumerate(text.splitlines(), 1):
-            if lineno <= body_start:
-                continue
+        for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
             for legacy in LEGACY_SKILL_NAME.findall(line):
                 report.error(f"{md}:{lineno}", f"{legacy!r} is a metal-skills name; use the plugin skill name")
             for mention in REFERENCE_MENTION.findall(line):

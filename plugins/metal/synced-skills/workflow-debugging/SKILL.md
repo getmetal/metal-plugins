@@ -1,8 +1,6 @@
 ---
 name: workflow-debugging
 description: Applies when a user provides a Metal workflow run ID or asks why an existing run behaved as it did, including failures, missing tool calls, artifacts, outputs, approval state, or definition drift; it is read-only, while workflow edits and run actions belong to workflow-building and running-workflows.
-metadata:
-  source: metal-skills v3.0.8 skills/metal-workflow-debugging
 ---
 
 # Metal Workflow Debugging
