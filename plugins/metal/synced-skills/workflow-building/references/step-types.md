@@ -14,7 +14,7 @@ Agent steps run a workflow-capable agent with tools, connections, and a prompt-l
 - Specialized agents fit provider-specific or internal workflow roles.
 - Agent steps use the agent-configured model unless `model` overrides it. Select an override from models with `workflowAgentStepEligible` in `list_workflow_building_options` kind `models`.
 - `reasoningEffort` requires an effective step model. Select a value from that model's `supportedReasoningEfforts`. A same-type update can set `reasoningEffort` without restating a model when the saved step already has one.
-- Agent steps surface `results.text`, `results.structured` only when the step has an `outputSchema`, `results.outputIds` when the agent creates outputs, and `results.templateInputData` for the Data Analysis Orchestrator. With an `outputSchema`, `results.text` and the top-level `.text` compatibility field contain the serialized validated payload, including when the transcript has no final prose or ends with prose after submission. Typed consumers should read `results.structured`, normally through `toJSON`.
+- Agent steps surface `results.text`, `results.structured` only when the step has an `outputSchema`, and `results.outputIds` when the agent creates outputs. With an `outputSchema`, `results.text` and the top-level `.text` compatibility field contain the serialized validated payload, including when the transcript has no final prose or ends with prose after submission. Typed consumers should read `results.structured`, normally through `toJSON`.
 - An agent step's `outputSchema` is enforced at run time through a structured-submission tool and a resolution ladder that fails the step loudly when no schema-valid output can be resolved; `structured-output.md` covers the contract.
 - For sandbox-generated user-visible files, the prompt must require `sandbox_download` and then `create_output` with the artifact ID returned by `sandbox_download`.
 
@@ -33,9 +33,9 @@ Completion steps make a single LLM call over `Prompt` and optional structured ou
 
 Tool steps execute one registered tool directly.
 
-- The building tools accept Tool `Input` only as a string template. Render structured arguments as a JSON string.
+- Tool `input` is an object or a string. Prefer an object: each string leaf is a Go template rendered on its own, and arrays, objects, numbers, and booleans keep their JSON types. Other JSON types are rejected with "tool input must be a string or object".
 - For a string: if the rendered string parses as JSON, the tool receives that JSON object; otherwise the tool receives `{ "input": "<rendered text>" }`.
-- Saved visual-builder and runtime definitions can contain object input, which the runner supports but the building tools cannot create or replace. On a same-type update, omit `input` to preserve an existing object. Supplying `input` replaces it with the authorable string form.
+- On a same-type update, `input` replaces as a whole value: omit it to keep the saved input, and resend every field you want to keep when you change it.
 - A tool's `inputSchema` comes from `list_workflow_building_options` kind `tools`.
 
 ## Execute Code
@@ -46,9 +46,9 @@ Execute-code steps run declared Python code in the sandbox with rendered JSON in
 - Structured output is opt in through `OutputSchema`; stdout must be a single JSON value, validated against the schema with coercion attempted before failure, before it appears at `results.structured`. Without `OutputSchema`, stdout remains text even when it is valid JSON.
 - Runtime libraries, helper scripts, paths, and package-install limits are in `execute-code-runtime.md`.
 - The script is literal Python, not a template. It reads rendered workflow input from the JSON file path in `sys.argv[1]`.
-- `inputFiles[]` each carry exactly one of `filename` or `dataEntityId` (mutually exclusive) plus a required template-rendered `path` that must render to an absolute non-glob destination. `filename` resolves against attached workflow files and prior artifacts; `dataEntityId` stages a platform data entity by ID and must render to a 24-character hex ObjectID. Both selectors, `workingDirectory`, `outputFiles[].path`, and `outputFiles[].filename` are template-rendered. Prefer exact filenames; partial filename matching is only acceptable when known unique. `inputFiles[]` does not support glob patterns.
+- `inputFiles[]` each carry exactly one of `filename`, `dataEntityId`, or `stepId` (mutually exclusive) plus a required template-rendered `path` that must render to an absolute non-glob destination. `filename` resolves against attached workflow files and prior artifacts and must not contain path separators; `dataEntityId` stages a platform data entity by ID and must render to a 24-character hex ObjectID; `stepId` names a prior step and stages that step's text output as a file, which keeps a large value out of the rendered `Input`. All three selectors, `workingDirectory`, `outputFiles[].path`, and `outputFiles[].filename` are template-rendered. Prefer exact filenames; partial filename matching is only acceptable when known unique. `inputFiles[]` does not support glob patterns.
 - When `inputFiles` are configured, the rendered `Input` must be a JSON object; an empty input is `{}`. The runner injects an `_inputFiles` array into that object, so `_inputFiles` is reserved.
-- Iterator child execute-code steps receive an `_iterator` context (`itemIndex`, `stepId`, `childStepId`, `childStepIndex`) usable in execute-code working directory, input selector (`filename`, `dataEntityId`), input path, output path, and output filename templates.
+- Iterator child execute-code steps receive an `_iterator` context (`itemIndex`, `stepId`, `childStepId`, `childStepIndex`) usable in execute-code working directory, input selector (`filename`, `dataEntityId`, `stepId`), input path, output path, and output filename templates.
 - Files are published only through declared `outputFiles`. A glob `outputFiles[].path` expands after the script exits, sorts file matches, fails when it matches zero files or more than 25, and rejects a non-empty `filename`.
 - `outputFiles[].createOutput: true` creates first-class run Output records that appear in the workflow run UI and records IDs in `results.outputIds`.
 - Outputs: `results.text` and `results.textS3Ref` (stdout), `results.exitCode`, `results.stderr` and `results.stderrS3Ref`, and `results.sandbox`. The `execution.executeCode` audit block carries the script and rendered input (surfaced by `get_workflow_run_step` view `execution`).
@@ -79,7 +79,7 @@ Object items are accessed directly; primitive items are wrapped as `{ "value": <
 
 Iterator behavior:
 
-- `concurrency` defaults to 6.
+- `concurrency` defaults to 6 and is capped at 10. A larger value is rejected, and a stored larger value runs and reads back as 10.
 - Iterator children share the run's one sandbox filesystem and run concurrently, so every path a child reads or writes must be item-unique (for example the item's document ID or itemIndex). A constant path is last-writer-wins across items; execute-code-runtime.md covers the rule.
 - `errorPolicy` is `failFast` (default; the first child failure fails the iterator and the run) or `continue` (failed items are skipped and iteration proceeds).
 - The building tools do not expose `mode`; passing `mode` returns `unknown_field`. Omit it on same-type updates to preserve any saved visual-builder value.
@@ -116,14 +116,14 @@ Authoring the arms:
 
 - `then` and `else` are inline arrays of steps on the branch config, so a whole branch with both arms is one `add_workflow_step` call. Each arm entry is `{type, name, config, outputSchema?}` with no `id`; the server mints those.
 - After creation each arm child is addressable by its own step ID at any depth, including arms nested in arms: `update_workflow_step`, `move_workflow_step`, and `delete_workflow_step` all take the child's ID alone. `add_workflow_step` inserts into an arm with the branch's `stepId` plus `arm` set to `then` or `else`.
-- A branch config always replaces as a whole value. Resending it mints new IDs for its arm steps, so every reference to an old arm ID breaks, and an arm left out of that resend is deleted rather than preserved. Editing an arm child by its own ID avoids both and leaves the rest of the branch alone; reserve the whole-config update for changing the condition or restructuring the arms deliberately.
+- A branch config replaces as a whole value as soon as you send `then` or `else`: every resent arm step gets a new ID, so references to old arm IDs break, and an arm left out or sent empty is cleared. To change only the condition, send `{"condition": "..."}` with neither arm key; both arms and their step IDs stay as they are. Edit an arm child by its own ID to change it without touching the rest of the branch.
 
 Structural rules:
 
 - At least one arm must be non-empty.
 - Branch nesting is capped at depth 3, counted from the workflow root: a top-level branch is 1. An iterator neither adds a level nor resets the count, so a branch inside an iterator that itself sits in a depth-2 arm is depth 3, and a branch below that one is rejected. The cap bounds total tree complexity, not depth within one scope.
-- Inside an iterator, directly or transitively, an arm may only hold `agent`, `completion`, `tool`, `generateDocument`, `executeCode`, and `branch`. `humanInLoop` would pause the run once per item, and `iterator` cannot be an iterator child at all.
-- A structured-review `humanInLoop` step (one with `reviewPayloadInput`) is rejected in any arm, even outside an iterator. Plain approval steps are allowed in a top-level arm.
+- Inside an iterator, directly or transitively, an arm may only hold `agent`, `completion`, `tool`, `executeCode`, and `branch`. `humanInLoop` would pause the run once per item, and `iterator` cannot be an iterator child at all.
+- Outside an iterator, an arm may contain plain or structured `humanInLoop` steps, at any nesting depth. A structured step sets `reviewPayloadInput` and exposes its approved payload through the normal `humanInLoopState` template path.
 - Step IDs are unique across the whole tree, arms included.
 
 Run surface:
@@ -151,11 +151,9 @@ Human approval steps pause for reviewer approval or rejection. Editable review p
 
 `human-review.md` covers payload contracts and approval handoffs.
 
-## Generate Document And Artifacts
+## Artifacts
 
-Generate Document fits template-backed outputs when the workflow already has, or needs, a work product template render path. `generate-document.md` covers the data contract.
-
-Generate Document outputs `results.filename`, `results.s3Key`, and `results.outputId` when Output record creation succeeds. The rendered document is also stored as a workflow artifact and run document.
+Saved `generateDocument` steps are retired: they stay readable, but a run of a workflow that contains one fails with `work_product_templates_retired`. See Retired Template Workflows in `SKILL.md`.
 
 Sandbox artifact generation fits custom DOCX, XLSX, PPTX, PDF, HTML, or similar files when the output is better produced by code inside an Agent or execute-code step. Agent-generated files must call `sandbox_download`, then `create_output` with the returned artifact ID. Execute-code files must be listed in `outputFiles`, and only entries with `createOutput: true` become first-class run Output records.
 

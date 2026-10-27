@@ -51,6 +51,7 @@ Read next:
 
 - The run-captured step `definition` from `get_workflow_run_step`, then the saved definition from `get_workflow_step`.
 - If the workflow is global and managed by version control, it cannot be edited through the building API (a 403 "managed by version control").
+- A 403 with code `work_product_templates_retired` means the workflow depends on retired work-product templates (for example a `generateDocument` step); saved definitions and past runs stay readable, but the workflow cannot run or be repaired by editing input data or templates.
 
 ### 2. Agent prompt or agent configuration
 
@@ -147,6 +148,7 @@ Ask:
 
 Ask:
 
+- Did the step or the run fail with `work_product_templates_retired`? Work-product templates are retired, so this is a permanent platform refusal, not a definition, input, or template defect. Report it and do not propose a template, input, or render-script fix. The questions below apply only to runs from before the retirement.
 - Did `generateDocument.inputData` or the filename template render incorrectly?
 - Does the rendered input match the work product template `inputSchema`?
 - Did the step produce `results.filename`, `results.s3Key`, and an output record, or did it fail at render time?
@@ -164,7 +166,7 @@ Ask:
 - A branch that never decided seeds no arm children at all, so both arms read `PENDING` rather than one of them `SKIPPED`, and every step under them looks like it is still waiting. Two arms pending under a branch that is FAILED, CANCELED, or halted is that shape, not a stuck run: diagnose the branch step, not its children. `SKIPPED` children mean a decision was persisted, by this branch or by an enclosing one: a branch sitting in an outer branch's untaken arm is itself `SKIPPED`, and its own unrecorded children read `SKIPPED` with it even though it never evaluated its condition.
 - String equality is exact, so `== "Diligence"` does not match `"diligence"`. This is the trap that yields a defensible-looking wrong answer rather than an error; numeric comparison against a run value works with either an integer or a decimal literal, and the mismatched form that does not (`size(...) > 0.0`) is rejected at save time rather than reaching a run.
 - Presence versus emptiness: `has(input.<key>)` is false only for an optional input the run omitted. A field that declares a default is always present, so `has()` on it is true even when the caller sent nothing.
-- Downstream of the branch, a template reading a skipped arm's step renders the `<no value>` sentinel rather than failing, so a garbled prompt further on can be the real symptom of an arm you did not expect to skip.
+- Downstream of the branch, a skipped arm's steps are absent from the template context. A one-level read such as `.Steps.<id>.text` renders the `<no value>` sentinel, so a garbled prompt further on can be the real symptom of an arm you did not expect to skip. A deeper read such as `.Steps.<id>.results.structured.<key>` fails the step with a template execution error, so a render failure that names a step ID can also mean that its arm did not run.
 
 ### Execute-code steps
 

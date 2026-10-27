@@ -51,7 +51,7 @@ The discoverable functions and their signatures come from `list_workflow_buildin
 - `pluck` extracts one key from each map in a list, for example `{{ pluck "name" .Input.companies }}`.
 - `dateInZone` formats a `time.Time` in an IANA timezone, for example `{{ dateInZone "2006-01-02" .Now "America/New_York" }}`.
 
-`iteratorResults` and `iteratorSummaries` also execute at run time but the catalog does not advertise them; they are runtime helpers. The checker validates their call arity and that the referenced step is an iterator step (otherwise it emits an error-severity `invalid_step_path` finding). `iteratorResults` returns text-only iterator results; use it for simple summaries. `iteratorSummaries` is lossy; avoid it for new building.
+`iteratorResults` and `iteratorSummaries` also execute at run time but the catalog does not advertise them; they are runtime helpers. The checker validates their call arity and that the referenced step is an iterator step (otherwise it emits an error-severity `invalid_step_path` finding). `iteratorResults` returns one row per item shaped `{"Item": <the item's input>, "Steps": {"<childStepId>": "<that child's text>"}}`. Read a child's text as `{{ index .Steps "<childStepId>" }}` inside `{{ range iteratorResults "<iteratorId>" }}`. A `toJSON` of the rows passes the envelopes, not the text. `iteratorSummaries` returns `{name, text}` per item and is lossy; avoid it for new building.
 
 ## Step Output References
 
@@ -68,7 +68,7 @@ When a downstream step needs machine-readable structured data, use `toJSON` inst
 
 Human approval `reviewPayloadInput` uses Go templates when structured upstream output needs a deterministic review envelope. Dynamic strings and objects should pass through `toJSON` so the rendered payload stays valid JSON.
 
-The payload must render as JSON with an `operations` array. Each operation should contain a stable `id`, durable `value`, and reviewer-facing `display`.
+The payload must render as JSON with an `operations` array. Each operation must contain a non-empty string `id` and an object `value`, plus an optional reviewer-facing `display` object.
 
 `display.facts` must render as an array of rows shaped `{ "label": "...", "value": "..." }`. Every displayed fact row needs a non-empty `label` and non-empty `value`; use a fallback such as `"-"` for optional values or omit the row.
 
@@ -115,13 +115,13 @@ Inside raw iterator `items`, child step outputs are keyed by child step ID and s
 
 ## Tool Inputs
 
-Tool step input is a string template. If the rendered string parses as JSON, the tool receives that JSON object. Otherwise, the tool receives `{ "input": "<rendered text>" }`.
+Tool step input is an object or a legacy string. Prefer an object: each string leaf is a template rendered on its own, and arrays, objects, numbers, and booleans keep their JSON types. When the tool declares an argument as an array or object, a leaf that renders JSON text, such as `{{ toJSON ... }}`, is decoded into that value. A legacy string input renders as a whole; if the result parses as a JSON object, the tool receives that object, and otherwise it receives `{ "input": "<rendered text>" }`.
 
-JSON-rendering tool inputs fit tools that expect structured arguments:
+An object input fits tools that expect structured arguments. Here the `operations` leaf renders JSON text, which is decoded into an array because the tool declares that argument as an array:
 
-```text
+```json
 {
-  "operations": {{ toJSON (index .Steps "approved-ops").results.structured.operations }}
+  "operations": "{{ toJSON (index .Steps \"approved-ops\").results.structured.operations }}"
 }
 ```
 

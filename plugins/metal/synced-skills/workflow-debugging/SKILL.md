@@ -7,15 +7,15 @@ description: Applies when a user provides a Metal workflow run ID or asks why an
 
 Use this skill when the user provides a run ID or asks a runtime-behavior question. Answer the user's direct behavior question from MCP run evidence first, then locate the fix surface. Conclusions about run or live-definition behavior require MCP-backed evidence.
 
-This skill is read-only. It never calls building tools, `run_workflow`, `review_workflow_hitl_step` (the tool that approves or rejects a run paused at `AWAITING_APPROVAL`), or `rerun_workflow_run_from_step` (which creates a new run from a terminal one rather than inspecting it, and is a natural temptation once a failing step is identified). Workflow edits route to the `workflow-building` skill; resolving inputs, starting a run, and rerunning one route to the `running-workflows` skill.
+This skill is read-only. It never calls building tools, `run_workflow`, `review_workflow_hitl_step` (the tool that approves or rejects a run paused at `AWAITING_APPROVAL`), `rerun_workflow_run_from_step` (which creates a new run from a terminal one rather than inspecting it, and is a natural temptation once a failing step is identified), or `cancel_workflow_run` (which moves a nonterminal run to `CANCELED` and is a natural temptation when a run looks stuck). Workflow edits route to the `workflow-building` skill; resolving inputs, starting a run, rerunning one, and canceling one route to the `running-workflows` skill.
 
 ## Connection
 
 - This skill operates through a connected Metal MCP. If more than one Metal MCP is connected, pick one for the task and do not mix them.
-- Servers differ by tool surface, not workflow tool behavior: a server that exposes org-selection tools (`get_orgs`, `select_org`, `get_current_org`) serves multiple orgs; a server without them is bound to a single org.
+- Servers differ by tool surface, not workflow tool behavior: a server whose tools take a required `orgId` argument, discoverable with `get_orgs`, serves multiple orgs; a server without `orgId` is bound to a single org.
 - On a single-org server: if tools are missing or fail to connect, the Metal MCP may not be connected, may be disabled for the org, or the user may be authed against a different org. Ask the user to confirm before concluding anything is broken, and direct them to re-auth when access looks wrong. If tools work but a workflow or run cannot be found, a not-found response can be a policy denial: the workflow exists but is out of the current org's access scope. Ask the user to confirm org access before concluding the workflow does not exist.
-- On a multi-org server: every workflow tool fails with "missing org context" until an org is bound with `select_org` (find it with `get_orgs`, verify with `get_current_org`). The binding can expire mid-conversation; the same error later means re-select, not a broken connection. Access-policy gates are broadly bypassed on this server, so a not-found response usually means the wrong org is bound or the resource genuinely does not exist.
-- Never proceed against an org the thread has not confirmed; this includes the org passed to `select_org`.
+- On a multi-org server: every org-scoped tool call names its org in `orgId`. There is no session-level org binding, so each call is scoped on its own and calls can target different orgs. Find org IDs with `get_orgs`. A call without `orgId` fails with an error that names the missing argument. Each call acts as your own user in that org, which must hold the Metal Team role there; otherwise the call fails with an error that asks you to add yourself to that org. Access-policy gates are broadly bypassed on this server, so a not-found response usually means the wrong `orgId` or a resource that does not exist.
+- Never proceed against an org the thread has not confirmed; this includes every `orgId` you pass.
 
 ## Evidence Gathering
 
@@ -90,7 +90,7 @@ For a dry-run diagnosis, report observed typed and echo-only calls plus only the
 | `tool` | Complete arbitrary tool result-map preview and pageable `outputs.results` JSON; rendered input on the run-captured step `definition` |
 | `iterator` | `iteratorSummary` totals on the run detail; per-item index, input, status, error, and child-step outputs via `view: "iteratorItems"`; single-item drill-down via `itemIndex` plus `childStepId` |
 | `humanInLoop` | `hitlSummary` on the run detail; payload, reviewer-facing items, summary, and `approvedReviewItemIds` via `view: "hitl"` |
-| `generateDocument` | Rendered document metadata in run `outputs.documentFiles` and the step's filename and output fields |
+| `generateDocument` | Historical only. Work-product templates are retired: run creation refuses these workflows with `work_product_templates_retired`, and a step that reaches execution fails with the same error. Runs from before the retirement keep rendered document metadata in `outputs.documentFiles` and the step's filename and output fields |
 | `executeCode` | Script, rendered input, effective `inputFiles`, expected `outputFiles` declarations, and paths via `view: "execution"`; stdout, stderr, and return code in transcript message parts; actual files in `outputs.outputFiles`, `outputs.documentFiles`, or `view: "artifacts"` as appropriate |
 | `branch` | `results.branch` (`"then"` or `"else"`) and `results.decision` (the bool) on the branch step itself; once a decision is persisted the untaken arm's children are recorded `SKIPPED` with no output, and a branch that never decided leaves both arms `PENDING` |
 
@@ -109,7 +109,7 @@ Workflow templates use Go `text/template` syntax; a missing terminal key renders
 
 Iterator steps materialize source data into items and run child steps per item.
 
-- Confirm the iterator source path matches the source type: data entity, resource list entries, structured output array, or HITL approved operations.
+- Confirm the iterator source path matches the source type: data entity, resource list entries, a top-level array or `dataEntityMulti` input (`array`), or a step output (`stepOutput`), which is either a structured output array or HITL approved operations.
 - Confirm the referenced step runs before the iterator.
 - Confirm structured-output iterator sources target an array field.
 - Confirm child prompts use `.Input.item` unless the workflow sets a custom context variable.
@@ -187,4 +187,4 @@ These signals do not change the fix surface diagnosis. They add a customer-quali
 
 ## When References Run Out
 
-These references plus MCP run evidence explain most defects. When they cannot, the cause might be in Metal's platform rather than the workflow definition. One durable fact worth keeping: some global workflows are managed by version control and cannot be edited through the building API (a 403 "managed by version control").
+These references plus MCP run evidence explain most defects. When they cannot, the cause might be in Metal's platform rather than the workflow definition. One durable fact worth keeping: some global workflows are managed by version control and cannot be edited through the building API (a 403 "managed by version control"). A 403 with code `work_product_templates_retired` means the workflow depends on retired work-product templates (for example a `generateDocument` step); saved definitions and past runs stay readable, but the workflow cannot run or be repaired by editing input data or templates.

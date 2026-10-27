@@ -6,21 +6,26 @@ Load this only when the workflow targets DealCloud: a DealCloud import, batch wr
 
 - `dealcloud_prepare_review_payload`: projects provider operations into field-level review items.
 - `dealcloud_validate_operations`: validates operations against the write contract before review.
-- `dealcloud_entity_write_v_2`: the collapse-aware writer. It collapses approved field fragments back into operations, preferring each field's `value.review.editedValue`. With `dryRun: true`, it returns dependency-tiered DealCloud Rows API payloads in `requests` without calling DealCloud.
+- `dealcloud_entity_write_v_2`: the collapse-aware writer. It collapses approved field fragments back into operations, preferring each field's `value.review.editedValue`. In a run-level dry run (`dryRun: true` on the workflow run), the gate suppresses the write and returns dependency-tiered DealCloud Rows API payloads in `requests` instead, without calling DealCloud.
 
 ## Wiring
 
 Follow the prepare-review to write pattern in `../human-review.md`: build operations, validate with `dealcloud_validate_operations`, project through `dealcloud_prepare_review_payload`, route the output through the human review step, and post `humanInLoopState.approvedPayload` to `dealcloud_entity_write_v_2`.
 
-## DealCloud Editability
+## DealCloud Editability And Review Scope
 
-The prepare-review adapter decides editability from field metadata. DealCloud specifics:
+The prepare-review adapter decides editability from field metadata. Proposed-field review is the default. Set `reviewScope` to `allEditable` to add other supported writable fields. The tool reads current update values. Untouched supplemental fields never write, including fields with non-null current values.
 
-- Single-select choice fields are inline-editable as picklists whose option values are the numeric choice IDs. Fields sharing a choice set (cascading pairs such as Deal Status and Deal Stage) stay read-only, as do fields whose choice set the schema does not report.
-- Any multi-select field is read-only whatever its type; that check runs before the per-type rules, so it also covers multi-select choice fields.
-- Text fields are inline-editable, markup included. DealCloud has no separate HTML field type: markup lives in a text field, and only the reviewer-facing display value is tag-stripped and truncated, while the editable value carries the raw text.
-- Reference, User, EntryListID, Binary, Counter, and Image fields are not inline-editable, because their raw values are entry references a reviewer cannot enumerate.
+DealCloud specifics:
+
+- Single-select Choice fields use picklists whose option values are numeric Choice IDs.
+- Multi-select Choice fields use `multiSelect` controls.
+- Fields sharing a Choice set, such as cascading Deal Status and Deal Stage, stay read-only.
+- Reference fields use `referenceList` only when the caller supplies 1 to 100 grounded `referenceOptions`. The UI does not search DealCloud.
+- A proposed Text or Date field stays read-only when its value is not a string. A Choice value must normalize to a valid choice ID. A reference stays read-only when its value is malformed or carries an `@{ref.EntryId}` dependency.
+- Text fields are inline-editable, markup included.
+- User, EntryListID, Binary, Counter, and Image fields remain read-only.
 
 ## Dry Run
 
-For preflight or testing, call `dealcloud_entity_write_v_2` with boolean `dryRun: true`. It parses and collapses the operation envelopes, validates cross-references, orders dependency tiers, and returns the planned Rows API requests without sending them. Omit `dryRun` or set it to `false` only for the approved live write.
+For preflight or testing, run the workflow in dry-run mode (`dryRun: true` on `run_workflow`). The run-level gate intercepts `dealcloud_entity_write_v_2`, which parses and collapses the operation envelopes, validates cross-references, orders dependency tiers, and returns the planned Rows API requests without sending them. There is no per-call dryRun input; the run flag is the only mechanism.

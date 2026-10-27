@@ -6,9 +6,9 @@ Use this reference when building direct Tool steps or when an Agent step needs c
 
 A Tool step executes one registered public tool or custom tool selected in the workflow definition.
 
-- The building tools accept Tool `Input` only as a string template. The rendered string parses as JSON or wraps as `{ "input": "<rendered text>" }`. Saved visual-builder definitions can contain object input; omit `input` on a same-type update to preserve that stored object because the building tools cannot create or replace it in object form.
-- A tool's exact field requirements come from its `inputSchema` in `list_workflow_building_options` kind `tools`. Render structured arguments as JSON.
-- Per-user Outlook tools and connection-seeded PitchBook tools cannot run as direct Tool steps. Authoring returns `unsupported_tool`; use an Agent step with the connection. Other connection tools can run directly only when the `tools` catalog also lists them.
+- The building tools accept Tool `input` as an object or as a string. Prefer an object: each string leaf is a Go template rendered on its own, and arrays, objects, numbers, and booleans keep their JSON types. A string input is rendered whole, then parsed as JSON or wrapped as `{ "input": "<rendered text>" }`. Custom tools receive string leaves in printed form, so wrap a structured value with `toJSON`.
+- A tool's exact field requirements come from its `inputSchema` in `list_workflow_building_options` kind `tools`.
+- Per-user Outlook tools and connection-seeded PitchBook tools cannot run as direct Tool steps; use an Agent step with the connection. `get_document_page` cannot run as a Tool step either, because it returns the page only as an image; use an Agent step. `http_request` runs only through `call_tool_with_secrets` from an Agent step, and the chat scheduling tools (`schedule_create`, `schedule_list`, `schedule_delete`) run only inside a chat session. Authoring returns `unsupported_tool` for all of these. Other connection tools can run directly only when the `tools` catalog also lists them.
 
 ### Tool Step Outputs
 

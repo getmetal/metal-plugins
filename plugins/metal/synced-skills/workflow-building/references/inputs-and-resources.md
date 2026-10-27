@@ -20,6 +20,8 @@ Three shapes are rejected at save time, all of them a required field no run coul
 - Required with no non-blank default on an email, event, or webhook trigger (`required_without_default`). Nothing fills a form on a triggered run, so every run would be rejected.
 - Required while a stored schedule's static `input` leaves it unsatisfied (`schedule_input_gap`), either by omitting a key no non-blank default would fill or by supplying it blank. That schedule would be rejected on its next fire, so set a value on the schedule, give the field a non-blank default, or mark it optional.
 
+A default must also have the JSON type its field declares: `true` or `false` for a boolean, a number for a number, text for a string, and a list of ObjectIDs for `dataEntityMulti`. `configure_workflow_input` rejects a mismatch such as `"true"` or `"5"` with `type_mismatch` at `fields[N].default`, and a mismatch already stored fails every run with `stored_input_schema_invalid`. On an email, event, or webhook trigger, save also checks each default against the field's other constraints, such as an `enum`, and rejects a failure as `trigger_default_invalid`.
+
 An optional field left unsupplied renders as empty in a step template rather than the literal `<no value>`. A branch condition sees it differently on purpose: the key is absent there, so `has(input.<key>)` is false, which is how a condition distinguishes "the run supplied nothing" from "the run supplied a blank". A field that declares a default is always present in both places, because the default fills the key first.
 
 `effectiveInputSchema`, on `get_workflow`, is how you read presence back. Each entry carries `key`, `type`, `presence`, `default`, and `source`, plus the `label`, `widget`, and `description` a caller needs to render or explain the field: `author` for a declared field, `trigger` for a key the trigger injects, and `manual` for a stand-in nothing injects, which a caller must supply by hand. Trigger and manual entries are always optional, since they are absent by design on a manual run. Presence itself is stored as the schema's top-level required list rather than per field, and a stored list is served back verbatim: the trigger never relaxes it, so a declared-required field still reads `required` on an email trigger. The trigger and the field's default decide presence only for a workflow that never declared a list. A trigger change that would contradict a declared required field is rejected at save time, by the trigger and schedule shapes above, instead of being quietly re-derived.
@@ -62,18 +64,18 @@ Resolved objects carry the fields below. Fields marked optional appear only when
 | `website` | string | |
 | `description` | string | |
 | `shortDescription` | string | |
-| `location` | string | Headquarters |
+| `location` | string | Headquarters, as a JSON-serialized location object |
 | `sector` | string | |
 | `subsector` | string | |
-| `employeeCount` | any | Enriched metric value |
+| `employeeCount` | number | Plain number |
 | `arr` | any | Enriched metric value; optional |
 | `adjustedEbitda` | any | Enriched metric value; optional |
 | `ebitda` | any | Enriched metric value; optional |
 | `revenue` | any | Enriched metric value; optional |
-| `lastValuation` | any | Enriched metric value |
-| `totalMoneyRaised` | any | Enriched metric value |
+| `lastValuation` | number | Plain number |
+| `totalMoneyRaised` | number | Plain number |
 
-The fields from `website` onward prefer enriched values and fall back to base company fields; each metric field is the value of an enriched metric.
+The fields from `website` onward prefer enriched values and fall back to base company fields. `arr`, `adjustedEbitda`, `ebitda`, and `revenue` are enriched metrics: each renders the metric's value and appears only once the company is enriched. The catalog labels the plain-number fields `string`.
 
 ### `person`
 
@@ -87,7 +89,7 @@ The fields from `website` onward prefer enriched values and fall back to base co
 | `currentTitle` | string | |
 | `currentCompanyName` | string | |
 | `phoneNumber` | string | |
-| `location` | object | `{city, state, country, postalCode, address, position: {lat, lng}}` |
+| `location` | struct | Location value with fields `City`, `State`, `Country`, `PostalCode`, `Address`, and `Position` |
 | `linkedinUrl` | string | |
 | `highestDegree` | string | |
 | `company` | string | Company ObjectID hex; optional |
@@ -95,7 +97,7 @@ The fields from `website` onward prefer enriched values and fall back to base co
 
 `externalReference` is a map here, unlike the JSON string on `company`: `{{ .Input.<field>.externalReference.platform }}`.
 
-The current `inputFieldTypes[].fields` catalog labels `person.location` as a string, but the resolved runtime value is the object above. Use the runtime shape when building templates and report the catalog mismatch to Metal if it blocks a workflow.
+`location` is a structured location value, not a string and not a JSON map. Read its parts with capitalized field names: `{{ .Input.<field>.location.City }}`, `.State`, `.Country`, `.PostalCode`, `.Address`. Lowercase keys such as `.location.city` fail the run. To pass the whole value to a step, use `{{ toJSON .Input.<field>.location }}`, which renders `{"city": ..., "state": ...}`. The `inputFieldTypes` catalog labels it `string`; trust this shape instead.
 
 ### `dataEntity`
 
@@ -145,7 +147,7 @@ An array of `dataEntity` objects (canonical type `dataEntity`). It has no dedica
 
 `resourceList` resolves to list metadata plus an embedded `entries` array.
 
-The resolver fetches entries in pages. When the embedded count reaches the 5,000 threshold and another page remains, it stops at that page boundary and logs a truncation warning without failing the run. Because it appends the page before checking the threshold, the embedded count can exceed 5,000. `entryCount` reports the embedded count, not the source total, and the payload has no truncation flag. Use list browsing for targeted reads and `export_list_entries` when a workflow needs complete contents from a large list.
+The resolver fetches entries in pages. When the embedded count reaches the 5,000 threshold and another page remains, it stops at that page boundary and logs a truncation warning without failing the run. It requests pages of 100 and checks the threshold after appending each page, so the embedded count is normally exactly 5,000. `entryCount` reports the embedded count, not the source total, and the payload has no truncation flag. Use list browsing for targeted reads and `export_list_entries` when a workflow needs complete contents from a large list.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -153,7 +155,7 @@ The resolver fetches entries in pages. When the embedded count reaches the 5,000
 | `name` | string | |
 | `description` | string | |
 | `resourceType` | string | The entries' resource type |
-| `entryCount` | int | Number of embedded entries; can exceed the 5,000 stopping threshold by one fetched page |
+| `entryCount` | int | Number of embedded entries, not the source total |
 | `isPrivate` | bool | |
 | `entries` | []map | Entry objects, shape below |
 | `createdAt` | time | Optional |
@@ -196,7 +198,7 @@ The item shape depends on the source:
 - A `dataEntity` iterator item is a flat map keyed by the file's column headers, with string cell values: `{{ .Input.item.<Header> }}` or `{{ index .Input.item "Column Name" }}`. It has no `.columns` and no `.value` wrapper.
 - A `resourceList` iterator item is an entry with `.columns` and `.resource` (above).
 - An `array` or structured-output item is the object itself (`{{ .Input.item.<field> }}`); a primitive item is wrapped as `{ "value": <v> }` and read with `{{ .Input.item.value }}`.
-- An HITL approved operation is a reviewed envelope `{id, value, display?}`; read the operation with `{{ .Input.item.value }}`.
+- An HITL approved operation is a reviewed envelope `{id, value, display?}` with a non-empty string `id` and an object `value`; read the operation with `{{ .Input.item.value }}`.
 
 For `stepOutput` sources, the referenced step must appear before the iterator. A structured-output source must target an array property in that step's `OutputSchema`. HITL approved operations use the approved-payload path and do not need a separate output schema.
 

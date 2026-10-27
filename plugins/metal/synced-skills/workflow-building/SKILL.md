@@ -1,27 +1,27 @@
 ---
 name: workflow-building
-description: Applies when a Metal workflow definition, step configuration, input or output contract, trigger, or template-backed document step must be inspected or changed through the Metal MCP; starting or acting on a run belongs to running-workflows, and read-only run diagnosis belongs to workflow-debugging.
+description: Applies when a Metal workflow definition, step configuration, input or output contract, or trigger must be inspected or changed through the Metal MCP; starting or acting on a run belongs to running-workflows, and read-only run diagnosis belongs to workflow-debugging.
 ---
 
 # Metal Workflow Building
 
-This skill is a reference for Metal workflow definitions, run evidence, execution code, and template-backed document outputs. The central building concern is the runtime contract: what workflow inputs resolve to, what each step emits, and what downstream steps consume.
+This skill is a reference for Metal workflow definitions, run evidence, execution code, and artifacts. The central building concern is the runtime contract: what workflow inputs resolve to, what each step emits, and what downstream steps consume.
 
 For run-behavior diagnosis from a run ID, use the `workflow-debugging` skill. Workflow edits route back here.
 
 ## Connection
 
 - This skill operates through a connected Metal MCP. If more than one Metal MCP is connected, pick one for the task and do not mix them.
-- Servers differ by tool surface, not workflow tool behavior: a server that exposes org-selection tools (`get_orgs`, `select_org`, `get_current_org`) serves multiple orgs; a server without them is bound to a single org.
+- Servers differ by tool surface, not workflow tool behavior: a server whose tools take a required `orgId` argument, discoverable with `get_orgs`, serves multiple orgs; a server without `orgId` is bound to a single org.
 - On a single-org server: if tools are missing or fail to connect, the Metal MCP may not be connected, may be disabled for the org, or the user may be authed against a different org. Ask the user to confirm before concluding anything is broken, and direct them to re-auth when access looks wrong. If tools work but a workflow or run cannot be found or run, a not-found response can be a policy denial: the workflow exists but is out of the current org's access scope. Ask the user to confirm org access before concluding the workflow does not exist.
-- On a multi-org server: every workflow tool fails with "missing org context" until an org is bound with `select_org` (find it with `get_orgs`, verify with `get_current_org`). The binding can expire mid-conversation; the same error later means re-select, not a broken connection. Access-policy gates are broadly bypassed on this server, so a not-found response usually means the wrong org is bound or the resource genuinely does not exist.
-- Never proceed against an org the thread has not confirmed; this includes the org passed to `select_org`.
+- On a multi-org server: every org-scoped tool call names its org in `orgId`. There is no session-level org binding, so each call is scoped on its own and calls can target different orgs. Find org IDs with `get_orgs`. A call without `orgId` fails with an error that names the missing argument. Each call acts as your own user in that org, which must hold the Metal Team role there; otherwise the call fails with an error that asks you to add yourself to that org. Access-policy gates are broadly bypassed on this server, so a not-found response usually means the wrong `orgId` or a resource that does not exist.
+- Never proceed against an org the thread has not confirmed; this includes every `orgId` you pass.
 
 ## Metal MCP Tools
 
 Read tools: `list_workflows`, `get_workflow`, `get_workflow_step`, `list_workflow_runs`, `get_workflow_run`, and `get_workflow_run_step`.
 
-Building tools: `create_workflow`, `update_workflow_details`, `configure_workflow_input`, `configure_workflow_trigger`, `configure_workflow_output`, `add_workflow_step`, `update_workflow_step`, `delete_workflow_step`, and `move_workflow_step`.
+Building tools: `create_workflow`, `update_workflow_details`, `configure_workflow_input`, `configure_workflow_trigger`, `configure_workflow_output`, `configure_workflow_scoring`, `add_workflow_step`, `update_workflow_step`, `delete_workflow_step`, and `move_workflow_step`.
 
 Run tool: `run_workflow` creates a workflow run and accepts the per-run `dryRun` value. Use the `running-workflows` skill for run-mode selection, input resolution, verification of the returned mode, and monitoring.
 
@@ -37,7 +37,7 @@ Rerun tool: `rerun_workflow_run_from_step` creates a new run from a terminal one
 
 ### Warnings Envelope
 
-Every building write returns the outstanding `warnings` plus one of two shapes. `add_workflow_step`, `update_workflow_step`, and `move_workflow_step` return `{step, expandableFields?, warnings}`, where `step` is normally the affected step in the compact shape `workflow.steps[]` carries. A committed write can return `step: null` when the response cannot project the saved step. Every other write returns `{workflow, warnings}`, where `workflow` is the compact updated projection `get_workflow` returns, not the full workflow document. This envelope is the validation surface; there is no separate validator or verification script.
+Every building write returns the outstanding `warnings` plus one of two shapes. `add_workflow_step`, `update_workflow_step`, and `move_workflow_step` return `{step, expandableFields?, warnings}`, where `step` is normally the affected step in the compact shape `workflow.steps[]` carries. A committed write can return `step: null` when the response cannot project the saved step. Every other write returns `{workflow, warnings}`, where `workflow` is the compact updated projection `get_workflow` returns, not the full workflow document. `configure_workflow_scoring` is the exception: it returns only the compact workflow projection, with no `warnings`. This envelope is the validation surface; there is no separate validator or verification script.
 
 - A warning is `{code, severity, path, refs, introduced, message}`.
 - Severity is fixed per code: error, warning, or advisory. A finding blocks the write only when it is both error severity and introduced by this write.
@@ -62,19 +62,22 @@ Workflow building, editing, and iterative validation are development intent. Use
 ## Sources Of Truth
 
 - Metal MCP evidence includes workflow definitions, step snapshots, run lists, run steps, outputs, tool calls, transcripts, errors, artifacts, and run documents.
-- Workflow definition fields commonly needed for building are `id`, `version`, General Access (`visibility`), `deprecated`, trigger, `inputSchema`, `outputConfig`, step IDs, step types, and step inputs.
+- Workflow definition fields commonly needed for building are `id`, `version`, General Access (`visibility`), `deprecated`, trigger, `inputSchema`, `outputConfig`, `outcomeConfig`, step IDs, step types, and step inputs.
 - Run evidence carries its own `workflowVersion`, step IDs, timestamps, outputs, artifacts, and errors. Older runs can reflect older workflow-definition versions.
-- Iterator child steps, Generate Document steps, HITL steps, and work product template workflows often require both definition evidence and run-step evidence to understand their concrete runtime shape.
+- Iterator child steps and HITL steps often require both definition evidence and run-step evidence to understand their concrete runtime shape.
 
 ## Building Surfaces
 
 | Surface | Typical contents |
 | --- | --- |
-| Workflow definition | Input schema, step ordering, step prompt, tool step input, `executeCode` config, `generateDocument.inputData`, output config, HITL review payload, iterator shape |
-| Work product template | `inputSchema`, render script, output format, template asset behavior |
+| Workflow definition | Input schema, step ordering, step prompt, tool step input, `executeCode` config, output config, outcome contract, HITL review payload, iterator shape |
 | Data access | Workflow input resources, platform/Egnyte/SharePoint discovery, attached files, sandbox uploads, agent usable connections |
 
-Surface choice matters because prompts cannot reliably compensate for missing schema fields, missing persisted step outputs, or renderer limitations. File access also depends on the runtime path: workflow input file, attached data entity, prior artifact, and platform-discovered resource are separate paths.
+Surface choice matters because prompts cannot reliably compensate for missing schema fields, missing persisted step outputs, or runtime limitations. File access also depends on the runtime path: workflow input file, attached data entity, prior artifact, and platform-discovered resource are separate paths.
+
+## Retired Template Workflows
+
+Work-product templates are retired. `generateDocument` steps, the `template_*`, `docx_automation_*`, `xlsx_automation_*`, and `pptx_automation_*` tools, the retired automation agents, and the `documentTemplates` building catalog kind are not authoring options. Agents no longer receive the `work_product` connection. Saved definitions, files, and run evidence stay readable. A write that adds a retired step, tool, or agent fails with a 403 and code `work_product_templates_retired`. `run_workflow` and `rerun_workflow_run_from_step` return the same error for a workflow that still contains one, even when `isExecutable` is true. That error is permanent; do not retry it or ask for more permissions. To make such a workflow runnable again, delete the retired step and produce the file another way, such as an `executeCode` step with `outputFiles` and `createOutput: true`, or an agent step that writes the file in the sandbox and calls `create_output`. A deprecated workflow rejects every edit with `workflow_deprecated`. Agent and `executeCode` sandbox artifacts are not affected.
 
 ## Step Interface Surfaces
 
@@ -84,10 +87,9 @@ Exact downstream key paths are distinct:
 
 - `.Steps["x"].text` is prior step text.
 - `.Steps["x"].results.structured` is validated structured output from steps configured to emit it.
-- `.Steps["x"].templateInputData` is work product template data produced by work product tooling.
 - `.StepArtifacts["x"]` holds workflow artifacts for step `x`. There is no `.Steps["x"].artifacts`; artifacts are addressable only through the root `.StepArtifacts`.
 
-Agent steps without an `outputSchema` expose human-readable text by default. With an `outputSchema`, an Agent step's `.text` compatibility field contains the serialized validated payload, while a Completion step's text can differ from its validated payload after coercion or reissue. Durable machine-readable consumers should read `results.structured`, normally through `toJSON`. Structured data comes from a declared `outputSchema` on an `agent`, `completion`, or `executeCode` step, a tool result, or a work product template data key.
+Agent steps without an `outputSchema` expose human-readable text by default. With an `outputSchema`, an Agent step's `.text` compatibility field contains the serialized validated payload, while a Completion step's text can differ from its validated payload after coercion or reissue. Durable machine-readable consumers should read `results.structured`, normally through `toJSON`. Structured data comes from a declared `outputSchema` on an `agent`, `completion`, or `executeCode` step or a tool result.
 
 ## Building process
 
@@ -120,7 +122,6 @@ Agent steps without an `outputSchema` expose human-readable text by default. Wit
 - Completed-run evidence for the happy path.
 - Failed-run evidence for the failure mode.
 - MCP-visible reproduction evidence for non-obvious execution behavior, plus the exact evidence gap to send to Metal when the skill cannot explain it.
-- Template schema fields when work product rendering is involved.
 - Compact contract shape: inputs, steps, produced fields, consumed fields, and failure modes.
 
 ## References
@@ -139,6 +140,5 @@ Agent steps without an `outputSchema` expose human-readable text by default. Wit
 - `references/human-review.md`: human approval, editable and field-level review, the approved-payload contract, and post-approval writes. Read before building any review step.
 - `references/retrieval-building.md`: source-backed retrieval, file inspection, evidence coverage, period/entity gates, and metric extraction.
 - `references/structured-output.md`: load when building workflow `step.OutputSchema` usage, schema-backed downstream contracts, or reasoning about runtime schema enforcement.
-- `references/generate-document.md`: Generate Document and work product template workflows.
-- `references/data-analysis-orchestrator.md`: `Data Analysis Orchestrator` agent behavior, work product tools, and agent file attachments.
+- `references/data-analysis-orchestrator.md`: the `Data Analysis Orchestrator` agent's delegation contract and agent file attachments.
 - `references/domains/`: provider-specific batch import, validation, review, and writeback playbooks (Salesforce, Affinity, DealCloud). Load a pack only when the workflow targets that provider.

@@ -13,7 +13,7 @@ Common `x-template` forms:
 - Citations JSON: `{{ toJSON (index .Steps "step-id").citations }}`
 - Iterator summary: range over raw iterator `items` when structured child output, citations, status, error, index, or original input matters. Child structured output is under `stepOutputs[childStepId].results.structured`, for example `{{ toJSON (index (index $item.stepOutputs "child-step-id").results "structured") }}` inside a `range`.
 
-The rendered template string is coerced to the declared JSON type. The schema root must render to an object, and a missing required output property fails the run during finalization; a schema render failure also fails the run. Run output defaults to `{"status":"completed"}` when there is no output schema, or when the schema produces nothing because every `x-template` field resolves empty.
+The rendered template string is coerced to the declared JSON type. The schema root must render to an object, and a missing required output property fails the run during finalization; a schema render failure also fails the run. Run output defaults to `{"status":"completed"}` only when there is no output schema, or when no schema node produces a value because no property carries an `x-template` or a `default`. An `x-template` that renders empty still produces its property, as an empty string for a `string` field.
 
 ## Section Display Rules
 
@@ -31,7 +31,7 @@ An HTML section consumes a self-contained HTML or SVG fragment. Instruct the emi
 - Do not use `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, or browser storage (`localStorage`, `sessionStorage`, `indexedDB`).
 - Do not reference `window.parent`, `window.top`, or `parent.`/`top.` members (`postMessage`, `location`, `frames`, `opener`, `document`, `window`). The capability checks are textual pattern matches, so these tokens trip validation even inside strings or comments.
 - Do not emit the literal `</approved_template>` closing tag; it is a reserved resolver sentinel.
-- Load remote resources only from the approved https-only CDN prefixes under `https://cdn.jsdelivr.net/npm/`: `chart.js`, `gridjs/`, `mermaid/`, `d3@7`, `topojson-client@3`, and `world-atlas@`. The check covers script `src`, link `href`, `src`/`srcset`/`href`/`xlink:href` attributes, and CSS `@import`/`url()`; http and protocol-relative URLs are rejected.
+- Load remote resources only from the approved https-only CDN prefixes under `https://cdn.jsdelivr.net/npm/`: `chart.js`, `gridjs/`, `mermaid/`, `d3@7`, `topojson-client@3`, `world-atlas@`, and `us-atlas@`. The check covers script `src`, link `href`, resource `src`/`srcset`/`href`/`xlink:href` attributes, and CSS `@import`/`url()`; http and protocol-relative URLs are rejected. An anchor link is a navigation target and is not limited to the CDN list. A `data:` URI is allowed for images but not for scripts or stylesheets.
 - Keep the fragment under 2,000,000 bytes.
 
 Finalization extracts a surrounding Markdown code fence or document shell before validation. The validator provides best-effort authoring feedback; the frontend sandboxed iframe and CSP enforce isolation. When validation fails, finalization clears that section's output and records the validation message in its `error`; the run still completes.
@@ -46,7 +46,7 @@ The advanced output template path is useful when output needs structured fields,
 
 ## Finalization
 
-- At finalization the run separates `Documents` (from generateDocument steps) from `Artifacts`, dedupes both by `bucket:key`, and drops empty references.
+- At finalization the run separates retained historical `Documents` from `Artifacts`, dedupes both by `bucket:key`, and drops empty references.
 - Execute-code files become user-visible run files only when a declared `outputFiles` entry has `createOutput: true`; those IDs are collected from step `results.outputIds`.
 - Token `usage` is appended to the final output as a top-level key only when the output schema declares `usage` or allows additional properties; otherwise it is stripped.
 
@@ -58,7 +58,7 @@ Email completion notification conditions are Go templates that must render to a 
 {{ (index .Steps "notification-gate").results.structured.shouldNotify }}
 ```
 
-If the condition renders `false`, the workflow run still completes and persists output, but the completion notification is skipped. Render or parse errors also skip the notification. The condition parses with `strconv.ParseBool`, so `true`, `false`, `1`, `0`, `t`, and `f` all work, and an empty or unset condition defaults to sending. A completion notification needs a user `triggeredBy` as its recipient; a run with no user trigger does not send one.
+If the condition renders `false`, the workflow run still completes and persists output, but the completion notification is skipped. Render or parse errors also skip the notification. The condition parses with `strconv.ParseBool`, so `true`, `false`, `1`, `0`, `t`, and `f` all work, and an empty or unset condition defaults to sending. A completion notification goes to the run's user subject: the user in `triggeredBy`, or else the user who initiated an attributed automation run. A run with neither sends none. A successful run notifies only when it has a rendered output section, an Output record, an artifact, or a declared outcome, and a dry run never notifies. With `includeMarkdownOutputInEmail`, the email body is the run debrief.
 
 ## Template Contracts
 

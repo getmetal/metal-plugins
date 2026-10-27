@@ -2,7 +2,7 @@
 
 Use this reference when a step needs an `OutputSchema`, when building schema-backed downstream contracts, or when reasoning about how structured output is enforced at run time.
 
-When building workflow `step.OutputSchema` JSON, follow the schema rules in this reference (see Output Schema Rules below) before creating or revising the schema. This applies only to workflow `step.OutputSchema`; keep workflow `inputSchema`, `outputConfig.schema`, `x-template` output sections, and work product template schemas in their own building paths.
+When building workflow `step.OutputSchema` JSON, follow the schema rules in this reference (see Output Schema Rules below) before creating or revising the schema. This applies only to workflow `step.OutputSchema`; keep workflow `inputSchema`, `outputConfig.schema`, and `x-template` output sections in their own building paths.
 
 ## Enforcement Model
 
@@ -46,13 +46,15 @@ When a prompt embeds schema JSON, keep the prompt-embedded schema and the step `
 
 ## Output Schema Rules
 
-Write standard JSON Schema. The runner validates the step's output against the full schema with a spec-compliant validator, so the keywords the schema carries are enforced at the step boundary. Keep root schemas as objects, and paste final schema JSON inline when the user needs the JSON.
+Write standard JSON Schema. The runner validates the step's output against the schema with a spec-compliant validator, so the keywords the schema carries are enforced at the step boundary. The validation copy also lets an optional property be `null` outside `oneOf` and `anyOf` branches. Keep root schemas as objects, and paste final schema JSON inline when the user needs the JSON.
 
 ### Persisted Keywords
 
-The saved schema representation carries: `type` (single or type-union array), `description`, `properties`, `items`, `required`, `additionalProperties`, `enum`, `const`, `oneOf`, `anyOf`, `not`, `pattern`, `default`, `uniqueItems`, `minimum`, `maximum`, `minLength`, `minItems`, and `maxItems`.
+The saved schema representation carries: `type` (single or type-union array), `description`, `properties`, `items`, `required`, `additionalProperties`, `enum`, `const`, `oneOf`, `anyOf`, `not`, `pattern`, `default`, `uniqueItems`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, and `maxProperties`. `additionalProperties` may be a boolean or a schema object.
 
-Keywords outside that set are dropped when the schema is saved and never validate. Do not use: `$ref`, `$defs`, `definitions`, `allOf`, `format`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `maxLength`, `minProperties`, `maxProperties`, `patternProperties`.
+Keywords outside that set are dropped when the schema is saved and never validate. Do not use: `$ref`, `$defs`, `definitions`, `allOf`, `format`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `minProperties`, `patternProperties`.
+
+The step's `outputSchema` is compiled at save with the same compiler the runner uses. That compiler uses Go's RE2 regexp engine, so a `pattern` with lookahead, lookbehind, a backreference, or repetition above 1000 is rejected at save with `invalid_output_schema`. Cap a string with `maxLength`, not with a repetition pattern.
 
 ### Structural Rules
 
@@ -63,7 +65,7 @@ Keywords outside that set are dropped when the schema is saved and never validat
 
 ### Constraint Keywords
 
-Value constraints (`minimum`, `maximum`, `pattern`, `minLength`, `minItems`, `maxItems`, `uniqueItems`) are enforced at validation, but providers may not see them during generation: Anthropic generation strips value constraints from the generation-side schema and OpenAI runs non-strict. A constraint the model cannot infer from context surfaces as coercion, a retry, or a loud step failure rather than guiding generation.
+Value constraints (`minimum`, `maximum`, `pattern`, `minLength`, `maxLength`, `minItems`, `maxItems`, `uniqueItems`) are always enforced at validation. Whether the model sees them during generation depends on the step type. An agent step's submission tool carries the schema as authored, so the constraints reach the model. An Anthropic completion step strips value constraints and `default` from the generation-side schema, and OpenAI runs non-strict. A constraint the model cannot see or infer surfaces as coercion, a retry, or a loud step failure.
 
 - Use constraints to encode real contract requirements, not stylistic preferences.
 - Restate load-bearing constraints in the prompt so the model can satisfy them during generation.

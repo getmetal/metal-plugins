@@ -14,17 +14,17 @@ Standard agents receive these platform-defined baseline tools in addition to the
 
 | Tool or group | Building use |
 | --- | --- |
-| `memory_store` | Store reusable information in agent memory |
-| `memory_recall` | Retrieve information from agent memory |
+| `search_memories` | Search durable memories for this user or workflow |
 | `wait` | Delay execution briefly |
 | `group:vfs` | Read and write virtual files available to the agent runtime |
 | `group:todo` | Track multi-step agent work inside the run |
+| `group:sandbox` | Run code and stage files in the run's sandbox |
 
 ## Workflow Agent
 
 Default reach: general workflow work that needs tools, retrieval, files, source-backed reasoning, or artifact creation.
 
-Native tools include `halt_workflow`, `create_output`, `get_document`, `download_image`, `download_pdf`, `platform_ls`, `resolve_folder_path`, `create_folder`, `move_data_entity`, `set_deal_folder`, `save_artifact_to_folder`, user and record tools (`group:users`, `group:records`), sandbox tools (`group:sandbox`), and the list tools below.
+Native tools include `halt_workflow`, `create_output`, `get_document`, `download_file`, `platform_ls`, `search_folders`, `resolve_folder_path`, `create_folder`, `move_data_entity`, `set_deal_folder`, `save_artifact_to_folder`, `ingest_email_attachment`, user and record tools (`group:users`, `group:records`), sandbox tools (`group:sandbox`), and the list tools below. Through `find_capabilities` and `call_tool` it can also reach a few read-only workflow and prompt tools: `get_workflow`, `get_workflow_step`, `get_workflow_run`, `get_workflow_run_step`, `list_workflow_runs`, `get_prompt`, and `list_prompts`. It uses `find_capabilities` to discover loadable skills.
 
 The `platform` connection is appended automatically for Agent steps unless disabled by saved configuration. Resource references in the step input do not infer strict-mode filters.
 
@@ -59,15 +59,15 @@ The built-in Workflow Agent has four list read tools plus one narrow write:
 | `get_list` | Get a list by ID, including column schema and metadata |
 | `browse_list_entries` | Read list entries with optional filters and sorts |
 | `export_list_entries` | Export matching list entries to a session artifact as JSON or CSV |
-| `update_list_entry` | Update cell values on an existing entry, in place |
+| `update_list_entry` | Set column values on an existing list entry |
 
 `export_list_entries` fits complete list contents. `browse_list_entries` fits previews or targeted entry inspection.
 
-`update_list_entry` is the one list mutation an autonomous Agent step can perform, so an agent step pointed at a list can write to it without a Tool step and without a human review gate. Build the review gate deliberately when that matters. The tools that create or destroy list structure are not native: `create_list`, `add_list_entry`, and `delete_list_entry` need a direct Tool step or a custom agent surface.
+`update_list_entry` is the one list mutation an autonomous Agent step can perform, so an agent step pointed at a list can write to it without a Tool step and without a human review gate. Build the review gate deliberately when that matters. On a list with write-back enabled, setting a column that maps to a resource property also writes through to the linked deal, company, person, or screening. `get_list` reports whether write-back is on. When it is on, treat the step as editing those records too, and add a human-review step if an unattended run should not do that. The tools that create or destroy list structure are not native: `create_list`, `add_list_entry`, and `delete_list_entry` need a direct Tool step or a custom agent surface.
 
 ## Loadable Skills
 
-Workflow agents load skills by reading mounted instructions with `read()` when the prompt calls for procedural guidance, such as file-format helpers, financial-model builders, list and dashboard guides, or document-extraction skills. Name the skill in the prompt. There is no `skills` catalog kind; the loadable set is platform-defined.
+Workflow agents load skills when the prompt calls for procedural guidance, such as file-format helpers, financial-model builders, list and dashboard guides, or document-extraction skills. Name the skill in the prompt. The loadable set is the platform's builtin skills plus the org skill-library skills that the run's user can access. `list_skills` and `get_skill` show the library. `list_workflow_building_options` has no `skills` catalog kind.
 
 Connection-provided skills can appear when a connection is mounted. For example, the platform connection can provide document-finding and search-troubleshooting guidance.
 
@@ -77,4 +77,4 @@ The agent step `config` accepts `agent`, `input`, `model`, `reasoningEffort`, `c
 
 `update_workflow_step` merges: an omitted field keeps its current value, so an `input`-only update preserves `usableConnections` and the rest; clear a field with an explicit `null` (or `[]` for lists). The compact `get_workflow` projection includes Agent and Completion `reasoningEffort` plus safe scalar tuning fields. Use `get_workflow_step` for complete safe prompts, context variables, connection options, skills, resolvers, or a full type-changing replacement; secret fields and secret-like string values remain redacted. These fields are unavailable on the MCP authoring surface and reject as `unknown_field`: `skills`, `maxTurns`, `agentTimeoutSeconds`, `projectTimeoutSeconds`, `tokenBudget`, `compactionThreshold`, `compactionCeiling`, and `contextWindowTokens`. Use the visual builder or ask Metal about unsupported configuration; a merge update preserves stored values that the MCP cannot author.
 
-`data-analysis-orchestrator.md` covers the Data Analysis Orchestrator agent and its work product tools.
+`data-analysis-orchestrator.md` covers the Data Analysis Orchestrator agent's delegation contract and file attachments.

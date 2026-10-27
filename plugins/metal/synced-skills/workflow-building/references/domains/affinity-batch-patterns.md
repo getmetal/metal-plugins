@@ -6,7 +6,7 @@ Load this only when the workflow targets Affinity: an Affinity import, batch wri
 
 - `affinity_prepare_review_payload`: projects provider operations into field-level review items.
 - `affinity_validate_operations`: validates operations against the write contract before review.
-- `affinity_entity_write`: the collapse-aware writer. It collapses approved field fragments back into operations, preferring each field's `value.review.editedValue`. With `dryRun: true`, it returns the ordered Affinity v1 call sequence in `calls` without calling Affinity.
+- `affinity_entity_write`: the collapse-aware writer. It collapses approved field fragments back into operations, preferring each field's `value.review.editedValue`. In a run-level dry run (`dryRun: true` on the workflow run), the gate suppresses the write and returns the ordered Affinity v1 call sequence in `calls` instead, without calling Affinity.
 
 ## Create-Only Writes
 
@@ -18,4 +18,4 @@ Follow the prepare-review to write pattern in `../human-review.md`: build operat
 
 ## Dry Run
 
-For preflight or testing, call `affinity_entity_write` with boolean `dryRun: true`. It parses and collapses the operation envelopes, then returns the planned Affinity v1 calls without sending them. Omit `dryRun` or set it to `false` only for the approved live write.
+For preflight or testing, run the workflow in dry-run mode (`dryRun: true` on `run_workflow`). The run-level gate intercepts `affinity_entity_write`, which parses and collapses the operation envelopes, then returns the planned Affinity v1 calls without sending them. There is no per-call dryRun input; the run flag is the only mechanism.

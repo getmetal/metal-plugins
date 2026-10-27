@@ -36,7 +36,7 @@ The image copies built-in helper scripts into `/opt/sandbox-scripts`, and the en
 - The workflow runner writes the literal script to `/home/sandbox/.workflow_steps/<pathSegment>/script.py`.
 - The runner writes rendered input JSON to `/home/sandbox/.workflow_steps/<pathSegment>/input.json`.
 - The runner calls `python3 <script.py> <input.json>`, so scripts read workflow input from `sys.argv[1]`.
-- The `script` field is not template-rendered. The `input`, `workingDirectory`, `inputFiles[].filename`, `inputFiles[].dataEntityId`, `inputFiles[].path`, `outputFiles[].path`, and `outputFiles[].filename` fields are template-rendered before execution, and every rendered value is validated before the first sandbox side effect.
+- The `script` field is not template-rendered. The `input`, `workingDirectory`, `inputFiles[].filename`, `inputFiles[].dataEntityId`, `inputFiles[].stepId`, `inputFiles[].path`, `outputFiles[].path`, and `outputFiles[].filename` fields are template-rendered before execution, and every rendered value is validated before the first sandbox side effect.
 - `workingDirectory` must render to an absolute path without glob characters. Omitted, it defaults to `/home/sandbox`; a configured template that renders empty fails the run.
 - Empty `input` renders as `{}`. With `inputFiles`, rendered input must be a JSON object and `_inputFiles` is reserved because the runner injects the uploaded-file manifest there.
 - The runner captures stdout, stderr, and exit code. With `outputSchema`, stdout must be one JSON value matching the schema before the step publishes declared `outputFiles`.
@@ -44,12 +44,21 @@ The image copies built-in helper scripts into `/opt/sandbox-scripts`, and the en
 
 ## File Publishing
 
-- Each `inputFiles[]` entry declares exactly one source: `filename` or `dataEntityId`. Both are template-renderable.
+- Each `inputFiles[]` entry declares exactly one source: `filename`, `dataEntityId`, or `stepId`. All three are template-renderable.
 - `inputFiles.filename` uploads a file through `sandbox_upload_artifact` semantics against the run's artifacts and attached files. Use an exact filename whenever possible. Partial filename matching is acceptable only when the match is known unique; it is name matching, not glob matching. The rendered filename must not contain path separators.
-- `inputFiles.dataEntityId` uploads a platform data entity through `sandbox_upload_data_entity`, staged at the exact rendered destination via `sandbox_path`. The rendered value must be a 24-character hex ObjectID, and the run principal's access checks apply.
+- `inputFiles.dataEntityId` uploads a platform data entity through `sandbox_upload_data_entity`, staged at the exact rendered destination via `sandbox_path`. The rendered value must be a 24-character hex ObjectID, and the run principal's access checks apply. The rendered path's file extension is enforced. When it does not match the entity's original file, the runtime uploads a converted rendition with that extension if one exists, such as the PDF conversion of a PPTX. Otherwise the step fails before code runs. When the entities can vary in type, such as a folder's documents, use an extension-less path and make the script handle every type.
+- `inputFiles.stepId` stages a prior step's text output as a file at the exact `path`. Use it for a large value instead of interpolating the value into `input`. It works whether that step's text was offloaded or kept inline. The step must exist and must run before this step.
 - `inputFiles[]` does not support glob patterns; each entry resolves one source to one exact destination, and `inputFiles[].path` must render to an absolute path with no glob syntax.
 - An executeCode step inside an iterator with concurrency > 1 (the default is 6) must give every path it reads or writes an item-unique value (the item's document ID, itemIndex, or another per-item field), because items run concurrently on the shared sandbox. A constant path is last-writer-wins: concurrent items overwrite each other's staged file and can read another item's data. For example, stage a per-item workbook at /home/sandbox/cmt_<workbook_doc_id>.xlsx, never /home/sandbox/cmt.xlsx.
 - `outputFiles` are the only files the runner publishes from the sandbox. Files left on disk without a declared `outputFiles` entry are not workflow artifacts or run Output records.
 - Exact output paths must exist after the script exits. Missing exact paths fail after script execution.
 - Glob output paths support `*`, `?`, bracket expressions such as `[0-9]`, and recursive `**`. They expand after script execution, return regular files only, sort matches, and fail when they match zero files or more than 25 files. `outputFiles[].filename` is invalid on a glob path. `[` counts as glob syntax everywhere, so it is rejected in the working directory and input paths.
 - `outputFiles[].createOutput: true` creates first-class run Output records for matched files and stores successful IDs in `results.outputIds`. Those Output records are what the run UI presents as workflow files.
+
+## Stable Spreadsheets
+
+When the workbook layout is structurally stable, prefer a deterministic `openpyxl` script, in an agent step or an `executeCode` step, over filling an uploaded example file.
+
+- Inspect the example workbook before building the prompt: sheet names, used ranges, merged cells, comments, formulas, column widths, row heights, styles, and fillable cells.
+- Hardcode the workbook layout, styles, merges, number formats, and output filename logic in the script. The script injects only prior-step structured data into the known cells.
+- Use this script-backed approach when exact layout and downstream parseability matter. When the layout changes often enough that recreating it in code is more fragile than filling an existing file, stage the example workbook with `inputFiles` and have the script fill it.

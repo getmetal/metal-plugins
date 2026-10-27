@@ -46,7 +46,7 @@ Neither route has been tested with this plugin yet. Each member still signs in t
 | `plugins/metal/synced-skills/` | Skills that the sync from `metal-backend` owns |
 | `scripts/` | The repository checks and the release packager |
 
-A sync from `metal-backend` will own `synced-skills/`. For now, the three workflow skills there are copies of metal-skills v3.0.8 (`7fa35e5`), renamed to match their `metal-backend` builtins. Versions translated from the builtins will replace them.
+A sync from `metal-backend` will own `synced-skills/`. For now, the three workflow skills there started as copies of metal-skills v3.0.8 (`7fa35e5`), renamed to match their `metal-backend` builtins. They were then corrected against `metal-backend` at `69795bf`. The domain packs in `workflow-building/references/domains/` mirror the builtin packs at that commit, with two MCP corrections: the `run_workflow` dry-run flag is `dryRun`, and only some field types stay read-only for a value of the wrong type. Versions translated from the builtins will replace these skills.
 
 ## Checks
 

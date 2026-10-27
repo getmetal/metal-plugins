@@ -10,11 +10,11 @@ The default. The workflow runs on demand, and `configure_workflow_input` fields 
 
 ### email
 
-Provisions an inbound email address; `emailPrefix` requests the local part. An incoming email injects a fixed input context: `input` (the body), `subject`, `from`, and `attachments` (data entity IDs for the attachments). Reference these as `.Input.input`, `.Input.subject`, and so on.
+Provisions an inbound email address. `emailPrefix` requests the local part on Metal's inbound domain; `emailAddressId` instead binds an unbound ingestion address from the org's verified custom-domain registry, and `null` returns to Metal's domain. Do not combine the two. An incoming email injects a fixed input context: `input` (the body), `subject`, `from`, and `attachments` (data entity IDs for the attachments). Reference these as `.Input.input`, `.Input.subject`, and so on.
 
 ### event
 
-Fires on a platform event. `eventName` is the event to listen for (for example `deal_create`); query `list_workflow_building_options` kind `events` for the valid names and the filter fields each supports. An optional `eventFilter` has `match` (`all` or `any`) and `conditions` (each currently an `eq` on an event field). `triggerer` assigns the org member to whom event runs are attributed; omit it to preserve the saved value or use `null` to clear it. The event injects context addressable as `.Input.event.name`, `.Input.event.resourceId`, and `.Input.event.resourceType`. `.Input.event.changes` appears when the source event carries changes; it is an ordered array of `{field, old?, new}` objects. A workflow that a workflow run triggered does not re-trigger itself.
+Fires on a platform event. `eventName` is the event to listen for (for example `deal_create`); query `list_workflow_building_options` kind `events` for the valid names and the filter fields each supports. `eventFilter` is optional, except on `data_entity_ready`, where it is required, and it is accepted only for events whose `events` catalog entry lists filter fields. It has `match` (`all` or `any`) and `conditions` (each currently an `eq` on an event field). `triggerer` assigns the org member to whom event runs are attributed; omit it to preserve the saved value or use `null` to clear it. The event injects context addressable as `.Input.event.name`, `.Input.event.resourceId`, and `.Input.event.resourceType`. `.Input.event.changes` appears when the source event carries changes; it is an ordered array of `{field, old?, new}` objects. An event that a workflow run caused does not trigger any workflow, including other workflows. On a `data_entity_ready` trigger a manual test run also offers `.Input.file` so you can pick a document by hand; a real triggered run does not supply it and carries the document as `.Input.event.resourceId`.
 
 ### schedule
 
@@ -35,7 +35,7 @@ Provisions an authenticated HTTP endpoint at `POST /webhooks/workflows/:slug`. T
 
 An enabled automatic trigger on a non-deprecated organization workflow can dispatch when its normal trigger conditions or schedule timing are satisfied.
 
-- `enabled` is a tri-state. Absent or `true` means the trigger fires; only an explicit `false` pauses it. Omitting the field on a write leaves the stored value unchanged.
+- `enabled` is a tri-state. Absent or `true` means the trigger fires; only an explicit `false` pauses it. Omitting the field on a write leaves the stored value unchanged while the trigger type stays the same. A write that switches trigger type starts enabled unless it sets `enabled: false`.
 - For `email`, `event`, and `webhook`, `enabled` sits on the trigger. For `schedule`, it sits on each element of `schedules`, so pausing one schedule leaves its siblings running. A schedule trigger has no trigger-level `enabled`.
 - Pausing does not block a manual run and does not change `isExecutable`, which reports deprecation only.
 - When every schedule is paused, or a non-schedule trigger is paused, saving surfaces the advisory `trigger_paused`. This reports stored state, not a defect; do not clear it by re-enabling unless the user asks.
@@ -45,8 +45,8 @@ An enabled automatic trigger on a non-deprecated organization workflow can dispa
 
 - Switching away from `email` or `webhook` deletes the inbound address or webhook endpoint. Switching back provisions a fresh one with a new address, or a new URL and secret, so external callers and senders must be updated.
 - Staying on the same trigger type keeps the linked resource.
-- An email prefix already in use surfaces as `address_in_use` on `trigger.emailPrefix`.
-- Switching away from `schedule` deletes its schedules; switching back mints new schedule ids and clears per-schedule triggerers and static input.
+- An address already in use surfaces as `address_in_use` on `trigger.emailPrefix`, or on `trigger.emailAddressId` for a custom-domain address.
+- Switching away from `schedule` deletes its schedules; switching back mints new schedule ids and does not restore per-schedule triggerers, static input, or pause state.
 - Re-submitting an unchanged trigger is a no-op success.
 
 ## Trigger Context And Templates

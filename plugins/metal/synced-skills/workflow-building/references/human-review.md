@@ -51,23 +51,26 @@ For generic, non-provider review, let structured upstream output be the source o
 
 ## Review Items And Approval Submission
 
-The runtime materializes `humanInLoopState.items` from the payload, one review item per `operations` entry. `len(operations)` must equal `len(items)`, or approval fails with "review items do not match resolved payload operations." A review item carries:
+The runtime materializes `humanInLoopState.items` from the payload, one review item per `operations` entry. `len(operations)` must equal `len(items)`, or approval fails with "human-in-loop review items do not match resolved payload operations." A review item carries:
 
 - `reviewItemId` (auto-assigned `item-<sourceIndex>`), `sourceIndex` (index into `operations`), `title`, `facts`, `groupLabel`.
 - `operationGroupId`, `reviewGranularity`, `fieldKey`, and `locked` for field-level rows.
-- `editable`: `{type, options, currentValue}` when the field is inline-editable.
+- `editable`: `{type, options, currentValue, multiple, maxLength}` when the field is inline-editable. `multiple` applies to `referenceList`. `maxLength` is the provider's character limit when it publishes one.
+- `supplemental`: true for a supported writable field that was absent from the proposed operation (added by a prepare-review `reviewScope: "allEditable"` call).
 
-The approval submission is `{approvedReviewItemIds: [...], fieldEdits: [{reviewItemId, value}]}`.
+The approval submission is `{approvedReviewItemIds: [...], fieldEdits: [{reviewItemId, value}]}`. Untouched supplemental items never become writes: the writer omits a supplemental fragment that carries no reviewer edit.
 
 ## Editable Field Types
 
-Editability is decided by the provider's prepare-review adapter from describe metadata; a builder does not set it. A field is inline-editable only when its reviewer-visible value uniquely determines the raw provider value. There are five editable types, each with a strict value shape the submission must match:
+Editability is decided by the provider's prepare-review adapter from describe metadata; a builder does not set it. A field is inline-editable only when its reviewer-visible value uniquely determines the raw provider value. There are seven editable types, each with a strict value shape the submission must match:
 
 - `text`: a string.
 - `number`: a JSON number.
 - `date`: an RFC3339 timestamp or a `YYYY-MM-DD` string.
 - `boolean`: a JSON boolean.
 - `picklist`: a string equal to one of `editable.options[].value`.
+- `multiSelect`: an array of unique strings, each one of `editable.options[].value`.
+- `referenceList`: an array of unique strings from the bounded `editable.options`; with `multiple: false` it accepts zero or one value.
 
 An approved edit writes the new value to the operation's `value.review.editedValue` and also re-seeds `items[].editable.currentValue`, so a reload shows the edited value rather than reverting to the agent's proposal.
 
@@ -97,15 +100,22 @@ The approval message summarizes the batch, explains held-back items when they ex
 
 ## Automatic Reviewer Assignment
 
-A human approval step has no statically configured reviewer field on the building surface. The `humanInLoop.resolver` config (shown in the builder as "Assign reviewer automatically") runs a built-in reviewer-resolver agent before the pause to choose the approver. The agent is fixed; only its instruction is builder-configured. Build it through `add_workflow_step` or `update_workflow_step` as `humanInLoop.resolver` with an `input` instruction string.
+A human approval step has three mutually exclusive reviewer modes. The mode is inferred from configuration, not stored separately:
 
-Review authorization follows the assignment state:
+- Anyone with access: neither `reviewerUserIds` nor `resolver` is set. An authenticated actor who otherwise may review the active run can review.
+- Specific people: `humanInLoop.reviewerUserIds` is a static any-of allowlist of 1 to 100 unique Metal user IDs from the workflow's org. Each ID must be an active Metal user in that org when you save. Every active listed user can approve or reject. The list fails closed: unlisted users, org admins included, cannot review, and if no listed user is still active, the run stays paused with no admin fallback.
+- Assign automatically: `humanInLoop.resolver` (shown in the builder as "Assign reviewer automatically") runs the fixed built-in reviewer-resolver agent before the pause. Only its `input` instruction is builder-configured.
 
-- A plain HITL step without a resolver allows an authenticated actor who otherwise has permission to review the active run.
+Set either field through `add_workflow_step` or `update_workflow_step`. `reviewerUserIds` and `resolver` must never coexist, and an empty `reviewerUserIds` array is rejected. To switch modes with `update_workflow_step`, set the field you leave to `null`. Set both to `null` to return to Anyone with access.
+
+For the resolver mode, review authorization follows the assignment state:
+
 - A successful resolver assignment restricts review to the assigned active Metal user.
-- A missing, failed, or stale resolver assignment allows an org admin or org owner to review. Metal Team does not receive this fallback.
+- A missing, failed, or stale resolver assignment allows an org admin to review.
 - Resolver failure logs a warning and leaves the workflow paused without an assigned reviewer; it does not fail the workflow.
 
-Approval notifications use a separate rule. An assigned active Metal user receives the notification. When the step has no assignment object, the run triggerer receives it if the triggerer is a user. A stale assignment has an assignment object but no valid notification recipient, so nobody receives the notification even though an org admin or owner can review.
+Metal Team gets no admin fallback on a live run. On a dry run, a Metal Team actor can approve or reject the active step whatever the reviewer mode, because dry-run writes never execute.
+
+Approval notifications use a separate rule. With `reviewerUserIds`, every active listed user receives the notification, and the triggerer does not unless listed. With a resolver, the assigned active Metal user receives it. When the step has neither a list nor an assignment object, the run's triggering user receives it, or the attribution initiator for an attributed automation run. A stale assignment has an assignment object but no valid notification recipient, so nobody receives the notification even though an org admin can review. A dry run sends no approval notification.
 
 Building documents this configuration and its safety semantics. Review actions and monitoring on a paused run belong to the `running-workflows` skill; run diagnosis stays read-only in `workflow-debugging`.
