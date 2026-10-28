@@ -1,29 +1,32 @@
 # metal-plugins
 
-This repository holds the `metal` plugin and a `metal` marketplace for Claude and Codex. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds Metal's workflow skills. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
+This repository holds the `metal` plugin and a `metal` marketplace for Claude, Codex and ChatGPT. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds Metal's workflow skills. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
 
 ## Install
 
-Claude Code:
+The Claude, Codex and ChatGPT desktop apps are the supported surfaces. These steps follow each vendor's documentation; a full install guide, tested on each app, is in progress.
 
-```sh
-claude plugin marketplace add getmetal/metal-plugins
-claude plugin install metal@metal
-```
+**Claude desktop app (chat and Cowork):** open Customize > Plugins, select Add > Add marketplace, and enter `getmetal/metal-plugins`. Add the Metal plugin, then open its Connectors tab and connect Metal.
 
-Codex:
+**Codex:** add the marketplace and install the plugin. From a terminal:
 
 ```sh
 codex plugin marketplace add getmetal/metal-plugins
 codex plugin add metal@metal
 ```
 
-An organization can install the plugin for its members instead:
+**ChatGPT Business or Enterprise:** a workspace admin imports the marketplace in Admin > Plugins > Add > Import marketplace, and authorizes a GitHub account to read this public repository. ChatGPT marks a plugin that declares an MCP server as Desktop only, so the plugin works in the ChatGPT desktop app and not in ChatGPT on the web. See OpenAI's [plugin management](https://learn.chatgpt.com/docs/enterprise/plugin-management) page.
 
-- **claude.ai:** an admin uploads the release zip in Organization settings > Plugins & skills.
-- **ChatGPT Business or Enterprise:** a workspace admin imports the marketplace in Admin > Plugins > Add > Import marketplace. ChatGPT marks a plugin that declares an MCP server as Desktop only, so the plugin works in the ChatGPT desktop app and not in ChatGPT on the web. See OpenAI's [plugin management](https://learn.chatgpt.com/docs/enterprise/plugin-management) page.
+**Claude Code:**
 
-Neither route has been tested with this plugin yet. Each member still signs in to Metal separately.
+```sh
+claude plugin marketplace add getmetal/metal-plugins
+claude plugin install metal@metal
+```
+
+**Claude organizations:** claude.ai's organization sync accepts only private or internal repositories, so an Owner cannot sync this repository directly. An Owner can upload the release zip in Organization settings > Plugins & skills, or sync a private marketplace repository that lists this plugin as its source.
+
+Members who receive the plugin from an admin need no GitHub account. Each member signs in to Metal with their own account.
 
 ## Skills
 
@@ -72,3 +75,7 @@ CI runs the same commands on every pull request, with Claude Code and Codex pinn
 ## Releases
 
 To release, set the same new `version` in both manifests and merge to `main`. CI then builds `metal-<version>.zip` and publishes it in a GitHub release tagged `metal--v<version>`. If that release already exists, CI does nothing. To build the zip locally, run `python3 scripts/package.py`. The zip holds the plugin directory's contents at its root.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

@@ -24,6 +24,7 @@ class RepoFixture(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp)
         for name in ("plugins", ".claude-plugin", ".agents"):
             shutil.copytree(REPO / name, self.tmp / name)
+        shutil.copy(REPO / "LICENSE", self.tmp / "LICENSE")
         self.layout = Layout(self.tmp)
         self.skill_md = self.layout.plugin / "synced-skills" / "workflow-debugging" / "SKILL.md"
 
@@ -169,6 +170,24 @@ class SkillTest(RepoFixture):
     def test_top_level_bin(self) -> None:
         (self.layout.plugin / "bin").mkdir()
         self.assert_error("top-level bin/")
+
+
+class LicenseTest(RepoFixture):
+    def test_plugin_license_must_exist(self) -> None:
+        (self.layout.plugin / "LICENSE").unlink()
+        self.assert_error("missing; installs carry only the plugin folder")
+
+    def test_plugin_license_must_match_root(self) -> None:
+        (self.layout.plugin / "LICENSE").write_text("MIT License\n", encoding="utf-8")
+        self.assert_error("must be identical to the repository LICENSE")
+
+    def test_root_license_must_exist(self) -> None:
+        (self.tmp / "LICENSE").unlink()
+        self.assert_error("LICENSE: missing")
+
+    def test_claude_manifest_names_the_license(self) -> None:
+        self.edit_json(self.layout.claude_manifest, lambda m: m.pop("license"))
+        self.assert_error("license must be 'Apache-2.0'")
 
 
 class PackageTest(RepoFixture):
