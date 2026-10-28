@@ -172,7 +172,6 @@ These signals do not change the fix surface diagnosis. They add a customer-quali
 - Cite the run step, tool call, artifact metadata, output field, or error that supports each conclusion.
 - Say what evidence is missing when a fix surface is not justified yet. If run evidence cannot be obtained, stop and say diagnosis is blocked rather than inventing workaround-based analysis.
 - If workflow evidence points to an external system lookup, hand off to the matching connector skill after the workflow diagnosis is established.
-- End a run investigation with a one-line summary in the form `Summary: <status> at <decisive step>. Cause: <direct cause>.`
 
 ## Boundaries
 
