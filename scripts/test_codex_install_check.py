@@ -86,7 +86,7 @@ class CodexInstallCheckTest(unittest.TestCase):
         self.assertEqual(self.check(), [])
 
     def test_expected_skills_come_from_the_repository(self) -> None:
-        self.assertEqual(codex_install_check.expected_skills(Layout(REPO)), {"workflow-building", "running-workflows", "workflow-debugging"})
+        self.assertEqual(codex_install_check.expected_skills(Layout(REPO)), {"skill-library", "workflow-building", "running-workflows", "workflow-debugging"})
 
     def test_skill_directory_missing_from_codex_manifest_fails(self) -> None:
         # Codex still copies synced-skills/ into its cache, but it does not load it.

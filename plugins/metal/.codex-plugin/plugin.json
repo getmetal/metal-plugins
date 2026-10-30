@@ -1,6 +1,6 @@
 {
   "name": "metal",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Connects the Metal MCP server and adds Metal's workflow skills.",
   "author": {
     "name": "Metal"
