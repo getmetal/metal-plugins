@@ -32,6 +32,7 @@ Members who receive the plugin from an admin need no GitHub account. Each member
 
 | Skill | Use |
 |---|---|
+| `metal:org-skills` | Find and follow the organization's own skills in Metal's skill library |
 | `metal:workflow-building` | Inspect or change a workflow definition |
 | `metal:running-workflows` | Start, rerun or approve a workflow run |
 | `metal:workflow-debugging` | Diagnose why an existing run behaved as it did |
