@@ -4,7 +4,7 @@ The Metal plugin connects Claude or Codex to the Metal MCP server at `https://mc
 
 The plugin adds four skills:
 
-- `org-skills`: find and follow the organization's own skills in Metal's skill library.
+- `skill-library`: find and follow the user's, firm's and shared skills in Metal's skill library.
 - `workflow-building`: inspect or change a workflow definition.
 - `running-workflows`: start, rerun or approve a workflow run.
 - `workflow-debugging`: diagnose why an existing run behaved as it did.
