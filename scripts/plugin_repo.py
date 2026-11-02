@@ -234,6 +234,23 @@ def check_listing_links(layout: Layout, report: Report) -> None:
             report.error(layout.codex_manifest, f"interface.{codex_key} must match the Claude manifest's {claude_key}")
 
 
+# ChatGPT fills a missing longDescription or capabilities and flags the
+# import "Imported with notices"; capabilities is a list, empty when none apply.
+def check_codex_listing_fields(layout: Layout, report: Report) -> None:
+    codex = load_json(layout.codex_manifest, report)
+    if codex is None:
+        return
+    interface = codex.get("interface") or {}
+    long_description = interface.get("longDescription")
+    if not isinstance(long_description, str) or not long_description.strip():
+        report.error(layout.codex_manifest, "interface.longDescription must be a nonblank string")
+    capabilities = interface.get("capabilities")
+    if not isinstance(capabilities, list):
+        report.error(layout.codex_manifest, "interface.capabilities must be a list")
+    elif not all(isinstance(c, str) and c.strip() for c in capabilities):
+        report.error(layout.codex_manifest, "interface.capabilities must hold only nonblank strings")
+
+
 def check_png_icon(path: Path, report: Report) -> None:
     if not path.is_file():
         report.error(path, "missing")
@@ -375,6 +392,7 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_no_bin(layout, report)
     check_icon(layout, report)
     check_listing_links(layout, report)
+    check_codex_listing_fields(layout, report)
     return report.errors
 
 
