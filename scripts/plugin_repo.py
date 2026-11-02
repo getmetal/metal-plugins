@@ -199,12 +199,39 @@ def check_claude_listing(layout: Layout, entry: dict, report: Report) -> None:
 
 def check_icon(layout: Layout, report: Report) -> None:
     claude = load_json(layout.claude_manifest, report)
-    if claude is None:
+    codex = load_json(layout.codex_manifest, report)
+    if claude is None or codex is None:
         return
-    if claude.get("icon") != ICON:
-        report.error(layout.claude_manifest, f"icon must be {ICON!r}")
-        return
+    interface = codex.get("interface") or {}
+    icon_fields = [(layout.claude_manifest, "icon", claude.get("icon"))]
+    icon_fields += [(layout.codex_manifest, f"interface.{key}", interface.get(key)) for key in ("composerIcon", "logo")]
+    for path, key, value in icon_fields:
+        if value != ICON:
+            report.error(path, f"{key} must be {ICON!r}")
     check_png_icon(layout.plugin / ICON, report)
+
+
+# Each Codex listing link and the Claude manifest field that holds the same URL.
+CODEX_LINKS = {
+    "websiteURL": "homepage",
+    "supportURL": "supportUrl",
+    "privacyPolicyURL": "privacyPolicyUrl",
+    "termsOfServiceURL": "termsOfServiceUrl",
+}
+
+
+def check_listing_links(layout: Layout, report: Report) -> None:
+    claude = load_json(layout.claude_manifest, report)
+    codex = load_json(layout.codex_manifest, report)
+    if claude is None or codex is None:
+        return
+    interface = codex.get("interface") or {}
+    for codex_key, claude_key in CODEX_LINKS.items():
+        url = claude.get(claude_key)
+        if not isinstance(url, str) or not url.startswith("https://"):
+            report.error(layout.claude_manifest, f"{claude_key} must be an https:// URL")
+        elif interface.get(codex_key) != url:
+            report.error(layout.codex_manifest, f"interface.{codex_key} must match the Claude manifest's {claude_key}")
 
 
 def check_png_icon(path: Path, report: Report) -> None:
@@ -347,6 +374,7 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_license(layout, report)
     check_no_bin(layout, report)
     check_icon(layout, report)
+    check_listing_links(layout, report)
     return report.errors
 
 

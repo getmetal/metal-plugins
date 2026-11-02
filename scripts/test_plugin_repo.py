@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 
 import package
+import plugin_repo
 from plugin_repo import REPO, Layout, check_all, plugin_version, release_tag
 
 
@@ -131,6 +132,22 @@ class ListingTest(RepoFixture):
         self.assert_error(f"{self.layout.codex_manifest}: description differs")
 
 
+class ListingLinkTest(RepoFixture):
+    def test_codex_links_must_match_claude(self) -> None:
+        for codex_key in plugin_repo.CODEX_LINKS:
+            with self.subTest(key=codex_key):
+                self.setUp()
+                self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update({codex_key: "https://example.com"}))
+                self.assert_error(f"interface.{codex_key} must match")
+
+    def test_claude_links_must_be_https(self) -> None:
+        for claude_key in plugin_repo.CODEX_LINKS.values():
+            with self.subTest(key=claude_key):
+                self.setUp()
+                self.edit_json(self.layout.claude_manifest, lambda m: m.update({claude_key: "http://www.metal.ai"}))
+                self.assert_error(f"{claude_key} must be an https:// URL")
+
+
 class IconTest(RepoFixture):
     def write_png(self, width: int, height: int, size: int = 0) -> None:
         header = b"\x89PNG\r\n\x1a\n" + (13).to_bytes(4, "big") + b"IHDR" + width.to_bytes(4, "big") + height.to_bytes(4, "big")
@@ -138,7 +155,14 @@ class IconTest(RepoFixture):
 
     def test_manifest_must_name_the_icon(self) -> None:
         self.edit_json(self.layout.claude_manifest, lambda m: m.pop("icon"))
-        self.assert_error("icon must be './assets/icon.png'")
+        self.assert_error(f"{self.layout.claude_manifest}: icon must be './assets/icon.png'")
+
+    def test_codex_icons_must_name_the_icon(self) -> None:
+        for key in ("composerIcon", "logo"):
+            with self.subTest(key=key):
+                self.setUp()
+                self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].pop(key))
+                self.assert_error(f"{self.layout.codex_manifest}: interface.{key} must be './assets/icon.png'")
 
     def test_icon_file_must_exist(self) -> None:
         (self.layout.plugin / "assets" / "icon.png").unlink()

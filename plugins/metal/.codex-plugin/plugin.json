@@ -1,17 +1,24 @@
 {
   "name": "metal",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Connects Metal's MCP server and adds skills for Metal workflows and your Metal skill library.",
   "author": {
-    "name": "Metal"
+    "name": "Metal",
+    "url": "https://www.metal.ai"
   },
   "repository": "https://github.com/getmetal/metal-plugins",
   "skills": ["./skills/", "./synced-skills/"],
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Metal",
-    "shortDescription": "Metal MCP server and workflow skills",
+    "shortDescription": "Metal's MCP server and skills",
     "developerName": "Metal",
-    "category": "Productivity"
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "websiteURL": "https://www.metal.ai",
+    "supportURL": "https://www.metal.ai/contact-us",
+    "privacyPolicyURL": "https://www.metal.ai/legal/privacy-policy",
+    "termsOfServiceURL": "https://www.metal.ai/legal/terms-of-service"
   }
 }
