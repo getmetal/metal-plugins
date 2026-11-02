@@ -43,6 +43,16 @@ VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 # plugin folder, so it holds its own copy of the license.
 LICENSE_SPDX = "Apache-2.0"
 
+# Claude's validator and OpenAI's submission rules both accept a square PNG
+# of 512 to 2048 px on each side, under 2 MB.
+ICON = "./assets/icon.png"
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+ICON_MIN_PX = 512
+ICON_MAX_PX = 2048
+ICON_MAX_BYTES = 2 * 1024 * 1024
+
+PUBLISHER = "Metal"
+
 
 @dataclass
 class Layout:
@@ -155,6 +165,8 @@ def check_marketplaces(layout: Layout, report: Report) -> None:
         entries = claude.get("plugins") or []
         if [(e.get("name"), e.get("source")) for e in entries] != [(PLUGIN_NAME, PLUGIN_SOURCE)]:
             report.error(layout.claude_marketplace, f"plugins must hold one entry {PLUGIN_NAME!r} with source {PLUGIN_SOURCE!r}")
+        else:
+            check_claude_listing(layout, entries[0], report)
 
     codex = load_json(layout.codex_marketplace, report)
     if codex is not None:
@@ -170,6 +182,48 @@ def check_marketplaces(layout: Layout, report: Report) -> None:
             policy = entry.get("policy") or {}
             if not policy.get("installation") or not policy.get("authentication") or not entry.get("category"):
                 report.error(layout.codex_marketplace, "the entry needs policy.installation, policy.authentication and category")
+
+
+def check_claude_listing(layout: Layout, entry: dict, report: Report) -> None:
+    # Before install, claude.ai shows the entry's display fields, so they
+    # name the publisher and must not drift from the manifests.
+    if (entry.get("author") or {}).get("name") != PUBLISHER:
+        report.error(layout.claude_marketplace, f"the entry's author.name must be {PUBLISHER!r}")
+    if not entry.get("category"):
+        report.error(layout.claude_marketplace, "the entry needs a category, or claude.ai assigns one")
+    for path in (layout.claude_manifest, layout.codex_manifest):
+        manifest = load_json(path, report)
+        if manifest is not None and manifest.get("description") != entry.get("description"):
+            report.error(path, "description differs from the Claude marketplace entry's")
+
+
+def check_icon(layout: Layout, report: Report) -> None:
+    claude = load_json(layout.claude_manifest, report)
+    if claude is None:
+        return
+    if claude.get("icon") != ICON:
+        report.error(layout.claude_manifest, f"icon must be {ICON!r}")
+        return
+    check_png_icon(layout.plugin / ICON, report)
+
+
+def check_png_icon(path: Path, report: Report) -> None:
+    if not path.is_file():
+        report.error(path, "missing")
+        return
+    data = path.read_bytes()
+    if len(data) >= ICON_MAX_BYTES:
+        report.error(path, f"must be under {ICON_MAX_BYTES} bytes, is {len(data)}")
+    # A PNG's first chunk is IHDR, which holds the width and height.
+    if data[:8] != PNG_SIGNATURE or data[12:16] != b"IHDR":
+        report.error(path, "must be a PNG")
+        return
+    width = int.from_bytes(data[16:20], "big")
+    height = int.from_bytes(data[20:24], "big")
+    if width != height:
+        report.error(path, f"must be square, is {width}x{height}")
+    elif not ICON_MIN_PX <= width <= ICON_MAX_PX:
+        report.error(path, f"must be {ICON_MIN_PX} to {ICON_MAX_PX} px on each side, is {width}")
 
 
 def split_frontmatter(text: str) -> tuple[list[str], str] | None:
@@ -292,6 +346,7 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_skills(layout, report)
     check_license(layout, report)
     check_no_bin(layout, report)
+    check_icon(layout, report)
     return report.errors
 
 

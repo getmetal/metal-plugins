@@ -109,6 +109,67 @@ class MarketplaceTest(RepoFixture):
         self.assert_error("name must be 'metal'")
 
 
+class ListingTest(RepoFixture):
+    def test_claude_entry_author_must_be_metal(self) -> None:
+        self.edit_json(self.layout.claude_marketplace, lambda m: m["plugins"][0].update(author={"name": "metal-plugins"}))
+        self.assert_error("author.name must be 'Metal'")
+
+    def test_claude_entry_author_is_required(self) -> None:
+        self.edit_json(self.layout.claude_marketplace, lambda m: m["plugins"][0].pop("author"))
+        self.assert_error("author.name must be 'Metal'")
+
+    def test_claude_entry_needs_category(self) -> None:
+        self.edit_json(self.layout.claude_marketplace, lambda m: m["plugins"][0].pop("category"))
+        self.assert_error("the entry needs a category")
+
+    def test_claude_manifest_description_must_match_entry(self) -> None:
+        self.edit_json(self.layout.claude_manifest, lambda m: m.update(description="Something else."))
+        self.assert_error(f"{self.layout.claude_manifest}: description differs")
+
+    def test_codex_manifest_description_must_match_entry(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m.update(description="Something else."))
+        self.assert_error(f"{self.layout.codex_manifest}: description differs")
+
+
+class IconTest(RepoFixture):
+    def write_png(self, width: int, height: int, size: int = 0) -> None:
+        header = b"\x89PNG\r\n\x1a\n" + (13).to_bytes(4, "big") + b"IHDR" + width.to_bytes(4, "big") + height.to_bytes(4, "big")
+        (self.layout.plugin / "assets" / "icon.png").write_bytes(header + b"\0" * max(0, size - len(header)))
+
+    def test_manifest_must_name_the_icon(self) -> None:
+        self.edit_json(self.layout.claude_manifest, lambda m: m.pop("icon"))
+        self.assert_error("icon must be './assets/icon.png'")
+
+    def test_icon_file_must_exist(self) -> None:
+        (self.layout.plugin / "assets" / "icon.png").unlink()
+        self.assert_error("icon.png: missing")
+
+    def test_icon_must_be_png(self) -> None:
+        (self.layout.plugin / "assets" / "icon.png").write_bytes(b"\xff\xd8\xff\xe0" + b"\0" * 64)
+        self.assert_error("must be a PNG")
+
+    def test_icon_must_be_square(self) -> None:
+        self.write_png(1024, 512)
+        self.assert_error("must be square, is 1024x512")
+
+    def test_icon_must_not_be_too_small(self) -> None:
+        self.write_png(256, 256)
+        self.assert_error("must be 512 to 2048 px on each side, is 256")
+
+    def test_icon_must_not_be_too_large(self) -> None:
+        self.write_png(4096, 4096)
+        self.assert_error("must be 512 to 2048 px on each side, is 4096")
+
+    def test_icon_must_be_under_2_mb(self) -> None:
+        self.write_png(1024, 1024, size=2 * 1024 * 1024)
+        self.assert_error("must be under 2097152 bytes")
+
+    def test_icon_limits_are_inclusive(self) -> None:
+        for side in (512, 2048):
+            self.write_png(side, side)
+            self.assertEqual(check_all(self.layout), [], side)
+
+
 class SkillTest(RepoFixture):
     def test_frontmatter_key_outside_allow_list(self) -> None:
         self.replace(self.skill_md, "\n---\n", "\nversion: 3.0.8\n---\n")
