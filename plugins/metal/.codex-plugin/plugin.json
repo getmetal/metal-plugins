@@ -1,6 +1,6 @@
 {
   "name": "metal",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Connects Metal's MCP server and adds skills for Metal workflows and your Metal skill library.",
   "author": {
     "name": "Metal",
@@ -12,8 +12,10 @@
   "interface": {
     "displayName": "Metal",
     "shortDescription": "Metal's MCP server and skills",
+    "longDescription": "Connects Metal's MCP server, so you can work with your firm's companies, deals, people, documents, lists and workflows in Metal. Adds skills for building, running and debugging Metal workflows, and for using the skills you and your firm keep in Metal. Sign in with your Metal account after you install.",
     "developerName": "Metal",
     "category": "Productivity",
+    "capabilities": [],
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "websiteURL": "https://www.metal.ai",

@@ -148,6 +148,31 @@ class ListingLinkTest(RepoFixture):
                 self.assert_error(f"{claude_key} must be an https:// URL")
 
 
+class CodexListingFieldTest(RepoFixture):
+    def test_long_description_is_required(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].pop("longDescription"))
+        self.assert_error("interface.longDescription must be a nonblank string")
+
+    def test_long_description_must_not_be_blank(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(longDescription="  "))
+        self.assert_error("interface.longDescription must be a nonblank string")
+
+    def test_capabilities_is_required(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].pop("capabilities"))
+        self.assert_error("interface.capabilities must be a list")
+
+    def test_capabilities_must_be_a_list(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(capabilities="Interactive"))
+        self.assert_error("interface.capabilities must be a list")
+
+    def test_capabilities_must_hold_nonblank_strings(self) -> None:
+        for bad in ([""], [1]):
+            with self.subTest(capabilities=bad):
+                self.setUp()
+                self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(capabilities=bad))
+                self.assert_error("interface.capabilities must hold only nonblank strings")
+
+
 class IconTest(RepoFixture):
     def write_png(self, width: int, height: int, size: int = 0) -> None:
         header = b"\x89PNG\r\n\x1a\n" + (13).to_bytes(4, "big") + b"IHDR" + width.to_bytes(4, "big") + height.to_bytes(4, "big")
