@@ -1,6 +1,6 @@
 # metal-plugins
 
-This repository holds the `metal` plugin and a `metal` marketplace for Claude, Codex and ChatGPT. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds Metal's workflow skills. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
+This repository holds the `metal` plugin and a `metal` marketplace for Claude, Codex and ChatGPT. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds skills for Metal workflows and the user's Metal skill library. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
 
 ## Install
 

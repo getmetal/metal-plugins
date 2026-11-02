@@ -2,13 +2,19 @@
   "name": "metal",
   "description": "Metal plugins for Claude",
   "owner": {
-    "name": "Metal"
+    "name": "Metal",
+    "url": "https://www.metal.ai"
   },
   "plugins": [
     {
       "name": "metal",
       "source": "./plugins/metal",
-      "description": "Connects the Metal MCP server and adds Metal's workflow skills."
+      "description": "Connects Metal's MCP server and adds skills for Metal workflows and your Metal skill library.",
+      "author": {
+        "name": "Metal",
+        "url": "https://www.metal.ai"
+      },
+      "category": "productivity"
     }
   ]
 }
