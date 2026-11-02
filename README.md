@@ -4,29 +4,20 @@ This repository holds the `metal` plugin and a `metal` marketplace for Claude, C
 
 ## Install
 
-The Claude, Codex and ChatGPT desktop apps are the supported surfaces. These steps follow each vendor's documentation; a full install guide, tested on each app, is in progress.
+**Claude desktop app (Chat and Cowork):** open Customize > Plugins, select + Add > Add marketplace, enter `getmetal/metal-plugins` and keep Sync automatically on. Add the Metal plugin, then open its Connectors tab and connect Metal. Each member installs the plugin for their own account.
 
-**Claude desktop app (chat and Cowork):** open Customize > Plugins, select Add > Add marketplace, and enter `getmetal/metal-plugins`. Add the Metal plugin, then open its Connectors tab and connect Metal.
+**ChatGPT desktop app (Work mode):** a workspace admin imports `https://github.com/getmetal/metal-plugins` under Plugins > Marketplaces in the workspace settings, with Auto-sync on. Members then open Customize > Plugins, select the workspace's tab and add Metal. Without the import, a member can add the marketplace from the Personal tab with Add > Add a marketplace. The plugin's tools don't work in Chat mode.
 
-**Codex:** add the marketplace and install the plugin. From a terminal:
-
-```sh
-codex plugin marketplace add getmetal/metal-plugins
-codex plugin add metal@metal
-```
-
-**ChatGPT Business or Enterprise:** a workspace admin imports the marketplace in Admin > Plugins > Add > Import marketplace, and authorizes a GitHub account to read this public repository. ChatGPT marks a plugin that declares an MCP server as Desktop only, so the plugin works in the ChatGPT desktop app and not in ChatGPT on the web. See OpenAI's [plugin management](https://learn.chatgpt.com/docs/enterprise/plugin-management) page.
-
-**Claude Code:**
+**Command line:**
 
 ```sh
 claude plugin marketplace add getmetal/metal-plugins
 claude plugin install metal@metal
+codex plugin marketplace add getmetal/metal-plugins
+codex plugin add metal@metal
 ```
 
-**Claude organizations:** claude.ai's organization sync accepts only private or internal repositories, so an Owner cannot sync this repository directly. An Owner can upload the release zip in Organization settings > Plugins & skills, or sync a private marketplace repository that lists this plugin as its source.
-
-Members who receive the plugin from an admin need no GitHub account. Each member signs in to Metal with their own account.
+Members need no GitHub account. Each member signs in to Metal with their own account.
 
 ## Skills
 
@@ -47,10 +38,8 @@ Members who receive the plugin from an admin need no GitHub account. Each member
 | `plugins/metal/.codex-plugin/plugin.json` | The Codex manifest |
 | `plugins/metal/.mcp.json` | The Metal MCP server, shared by both manifests |
 | `plugins/metal/skills/` | Hand-written skills |
-| `plugins/metal/synced-skills/` | Skills that the sync from `metal-backend` owns |
+| `plugins/metal/synced-skills/` | Workflow skills |
 | `scripts/` | The repository checks and the release packager |
-
-A sync from `metal-backend` will own `synced-skills/`. For now, the three workflow skills there started as copies of metal-skills v3.0.8 (`7fa35e5`), renamed to match their `metal-backend` builtins. They were then corrected against `metal-backend` at `69795bf`. The domain packs in `workflow-building/references/domains/` mirror the builtin packs at that commit, with two MCP corrections: the `run_workflow` dry-run flag is `dryRun`, and only some field types stay read-only for a value of the wrong type. Versions translated from the builtins will replace these skills.
 
 ## Checks
 
@@ -62,12 +51,7 @@ claude plugin validate --strict .
 python3 scripts/codex_install_check.py
 ```
 
-`scripts/check.py` checks that:
-
-- both manifests have the same name and version;
-- both load the same skill directories and the same `.mcp.json`;
-- `.mcp.json` holds only the Metal server;
-- each skill's frontmatter uses only the keys that claude.ai accepts: `name`, `description`, `license`, `compatibility`, `metadata` and `allowed-tools`.
+`scripts/check.py` checks that both manifests agree on name, version, skill directories and MCP config, that `.mcp.json` holds only the Metal server, that skill frontmatter uses only keys claude.ai accepts, and that the icon and listing fields are set.
 
 Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` and `synced-skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
 
