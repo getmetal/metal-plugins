@@ -32,8 +32,9 @@ SKILL_NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_CHARS = 64
 MAX_DESCRIPTION_CHARS = 1024
 
-# The metal-skills names the copied skills were renamed from.
-LEGACY_SKILL_NAME = re.compile(r"metal-workflow-[a-z-]+")
+# The metal-skills names the copied skills were renamed from. The left boundary
+# keeps HTML attributes such as data-metal-workflow-id from matching.
+LEGACY_SKILL_NAME = re.compile(r"(?<![\w-])metal-workflow-[a-z-]+")
 
 REFERENCE_MENTION = re.compile(r"references/[A-Za-z0-9_\-./]+")
 
