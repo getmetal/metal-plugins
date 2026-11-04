@@ -1,6 +1,6 @@
 # metal-plugins
 
-This repository holds the `metal` plugin and a `metal` marketplace for Claude, Codex and ChatGPT. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds skills for Metal workflows and the user's Metal skill library. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
+This repository holds the `metal` plugin and a `metal` marketplace for Claude, Codex and ChatGPT. Installing the plugin connects the Metal MCP server at `https://mcp.metal.ai/mcp` and adds skills for working with Metal: deal research, dashboards, workflows, routines, tasks, investor-relations records, Metal's docs and the user's Metal skill library. Each user signs in to Metal through the MCP server's OAuth flow. The repository contains no credentials.
 
 ## Install
 
@@ -27,6 +27,14 @@ Members need no GitHub account. Each member signs in to Metal with their own acc
 | `metal:workflow-building` | Inspect or change a workflow definition |
 | `metal:running-workflows` | Start, rerun or approve a workflow run |
 | `metal:workflow-debugging` | Diagnose why an existing run behaved as it did |
+| `metal:workflow-fixing` | Fix a failed workflow run and check the fix with a dry run |
+| `metal:deal-research` | Research a deal and read figures from deal documents, weighted by source |
+| `metal:dashboard-building` | Build or edit dashboard widgets, including script and HTML widgets |
+| `metal:metal-sdk-scripts` | Write Python against the Metal SDK for SDK queries and dashboard scripts |
+| `metal:running-routines` | Start a routine run, answer its questions and read its output |
+| `metal:working-with-tasks` | Read, update and complete tasks |
+| `metal:working-with-ir-records` | Explain funds, limited partners and fundraising processes |
+| `metal:metal-product-knowledge` | Answer questions about Metal from its public docs |
 
 ## Layout
 

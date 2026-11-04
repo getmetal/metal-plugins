@@ -1,8 +1,8 @@
 {
   "name": "metal",
   "displayName": "Metal",
-  "version": "0.1.7",
-  "description": "Connects Metal's MCP server and adds skills for Metal workflows and your Metal skill library.",
+  "version": "0.2.0",
+  "description": "Connects Metal's MCP server and adds skills for deal research, dashboards, workflows, routines, tasks and your Metal skill library.",
   "author": {
     "name": "Metal",
     "url": "https://www.metal.ai"
