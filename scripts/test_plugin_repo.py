@@ -241,6 +241,11 @@ class SkillTest(RepoFixture):
             f.write("\nSee metal-workflow-building for edits.\n")
         self.assert_error("'metal-workflow-building' is a metal-skills name")
 
+    def test_legacy_name_inside_html_attribute_is_allowed(self) -> None:
+        with self.skill_md.open("a", encoding="utf-8") as f:
+            f.write('\nSet data-metal-workflow-id on the button.\n')
+        self.assertEqual(check_all(self.layout), [])
+
     def test_legacy_name_in_description(self) -> None:
         self.replace(self.skill_md, "belong to workflow-building", "belong to metal-workflow-building")
         self.assert_error(":3: 'metal-workflow-building' is a metal-skills name")
