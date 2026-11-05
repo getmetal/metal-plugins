@@ -12,7 +12,7 @@ A Metal list is a table of rows with typed columns. On a typed list, such as a c
 - **Find and read:** `list_lists` (filter by `resourceType`), `get_list` for the columns, `get_list_entries` for the rows.
 - **Create and change:** `create_list`, `update_list` (name, description, primary key), `update_list_columns` (add, remove, rename), `add_list_entries`, `update_list_entry`.
 
-These tools cannot delete a list or a row, filter or sort rows on the server, run AI enrichment, sync or refresh columns, share a list, or create a column that syncs a field from the linked record. They cannot create Score or Tags columns. When the user asks for one of these, tell them to do it in the Metal app. A list created here is private to the user until they share it in the app.
+These tools cannot delete a list or a row, filter or sort rows on the server, run AI enrichment, sync or refresh columns, share a list, or create a column that syncs a field from the linked record, other than the name column that `create_list` adds. They cannot create Score or Tags columns. When the user asks for one of these, tell them to do it in the Metal app. A list created here is private to the user until they share it in the app.
 
 ## Choose the list's resource type
 
@@ -21,17 +21,15 @@ These tools cannot delete a list or a row, filter or sort rows on the server, ru
 
 ## Save results as a list
 
-When the user asks to save companies, people or deals that you showed them, the list must show what they saw. `create_list` creates exactly the columns you pass, and no others.
+When the user asks to save companies, people or deals that you showed them, the list must show what they saw. On a typed list, `create_list` adds a name column first. Apart from that, it creates exactly the columns you pass.
 
 1. Pick the resource type. Plan one column for each attribute you showed, in the same order, with the column type that fits the value (see Column types below).
-2. Make the first column a `string` column that holds each row's name, such as "Company Name". These tools cannot create a column that reads the name from the linked record, so a typed list without this column shows no name on any row. On a `none` list, call this column `Name`; Metal shows a text column with that exact name as the row's name.
+2. On a typed list, do not plan a name column. `create_list` adds one as the first column, such as "Company Name" on a company list, and it shows each row's linked record name and follows renames. Its tool description names the column for each list type. A text column you pass with that name is dropped. On a `none` list, make the first column a `string` column called `Name`; Metal shows a text column with that exact name as the row's name.
 3. Call `create_list`. Keep the column IDs from its result. Cell values are keyed by column ID, not by column name.
-4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. When a search returns several plausible records for one name, such as "Duck Creek" and "Duck Creek Technologies", ask the user which one. Write the record's name into the name column yourself.
+4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. When a search returns several plausible records for one name, such as "Duck Creek" and "Duck Creek Technologies", ask the user which one. On a typed list, leave the name column out of `values`; it fills from the linked record. On a `none` list, write each row's name into `Name`.
 5. Check `failed[]` in the result (see Partial failures), then read the rows with `get_list_entries` and tell the user how many rows were saved and which were not.
 
 Never add a row to a company or person list without `resourceId`. Metal then tries to match the row to a record from its values, and it can create a new company or person record in the CRM. On a `none` list, omit `resourceId` and `resourceType`.
-
-The name column is a copy. It does not change when the record is renamed.
 
 ## Column types
 
@@ -100,7 +98,7 @@ A users cell holds user IDs, never names or emails.
 
 ### Mapped cells write back to the record
 
-A list created in the Metal app can have mapped columns: in `get_list`, a column with a `mapping` that is not in `relationshipColumnIds`. Updating a mapped cell can change the linked deal, company, person or other record, and through a CRM integration the CRM too. Ask even when `get_list` shows `settings.writeBackEnabled: false`, because that setting does not cover every list type. Before you update a mapped cell:
+A list can have mapped columns: in `get_list`, a column with a `mapping` that is not in `relationshipColumnIds`. The name column that `create_list` adds to a typed list is one, and lists created in the Metal app can have more. Updating a mapped cell can change the linked deal, company, person or other record, and through a CRM integration the CRM too. Ask even when `get_list` shows `settings.writeBackEnabled: false`, because that setting does not cover every list type. Before you update a mapped cell:
 
 1. Tell the user the record, the field, its current value and the new value, and that the change goes to the record and the CRM, not only to the list.
 2. Wait for the user to confirm.
@@ -110,7 +108,7 @@ Relationship cells never write back.
 
 ## Changing columns
 
-- Call `get_list` first. A list created in the Metal app already has a name column, so do not add a second one.
+- Call `get_list` first. A typed list already has a name column, whether it was created in the Metal app or with `create_list`, so do not add a second one.
 - `update_list_columns` adds, removes and renames columns by column ID, in one call. Renames are applied first.
 - Removing a column deletes its values from every row. Confirm with the user before you remove a column that has values.
 - A column's type cannot be changed. Replacing it means removing the column and its values, then adding a new one. Confirm that with the user first.
