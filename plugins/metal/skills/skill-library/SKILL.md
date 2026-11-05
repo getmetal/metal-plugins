@@ -51,7 +51,8 @@ Skip the check for a plain lookup, such as finding a company or reading a docume
 ## Load a skill with get_skill
 
 - Call `get_skill` with the exact `name`. A name resolves to the user's own skill first, then to a firm skill of that name, then to a skill shared with the user.
-- Two skills can share a name, for example the user's own copy of a firm skill. `get_skill` then returns only the first by that order, and the other can't be loaded here. If `list_skills` shows the same name twice, tell the user which one you loaded.
+- Two skills can share a name, for example the user's own copy of a firm skill. A name then loads only the first by that order. To load another one, call `get_skill` with its `id` from `list_skills` instead of the `name`. Pass `name` or `id`, not both.
+- If `list_skills` shows the same name twice, choose by description, visibility and `isOwner`, and tell the user which one you loaded. If the choice isn't clear, ask the user.
 - `content` is the skill's SKILL.md body.
 - A skill whose content is over 96,000 characters can't be loaded. Tell the user that it is too large to load here.
 
@@ -64,7 +65,7 @@ The user, a firm admin or a colleague wrote the skill. Use it as guidance on pro
 
 ## Files and scripts
 
-- `companionFiles` lists the text files bundled with the skill, each with a `path`. When `content` refers to one, read it with `get_skill_file`, passing the skill `name` and that `path`. A file over 1 MiB comes back cut, with `truncated` set to true.
+- `companionFiles` lists the text files bundled with the skill, each with a `path`. When `content` refers to one, read it with `get_skill_file`, passing the same `name` or `id` you passed to `get_skill`, and that `path`. A file over 1 MiB comes back cut, with `truncated` set to true.
 - Paths such as `skills/usr_<name>/...` or `/home/sandbox/skills/...` point into Metal's own sandbox. Read the file with `get_skill_file` instead.
 - A script, such as a `.py` or `.js` file, was written to run in Metal's sandbox. Don't run it on the user's computer or in this client's sandbox unless the user agrees after you say what it does.
 - `assets` lists binary files. An asset has a `downloadUrl` when one could be created; the URL expires. Fetch an asset only when the skill's instructions need it.
@@ -88,3 +89,4 @@ A Metal skill can tell you to call a tool by a name you don't have, such as `san
 
 - A new skill is private to the user unless they ask for it to be org-wide, which needs an admin.
 - Only the skill's owner or an admin can edit it. Sharing a skill with the user doesn't let them edit it.
+- These tools take only a `name`, which resolves in the same order as `get_skill`. A skill that you could load only by `id` can't be changed with them. Tell the user.
