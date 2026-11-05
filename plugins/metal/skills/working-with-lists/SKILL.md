@@ -26,7 +26,7 @@ When the user asks to save companies, people or deals that you showed them, the 
 1. Pick the resource type. Plan one column for each attribute you showed, in the same order, with the column type that fits the value (see Column types below).
 2. Make the first column a `string` column that holds each row's name, such as "Company Name". These tools cannot create a column that reads the name from the linked record, so a typed list without this column shows no name on any row. On a `none` list, call this column `Name`; Metal shows a text column with that exact name as the row's name.
 3. Call `create_list`. Keep the column IDs from its result. Cell values are keyed by column ID, not by column name.
-4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. Write the record's name into the name column yourself.
+4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. When a search returns several plausible records for one name, such as "Duck Creek" and "Duck Creek Technologies", ask the user which one. Write the record's name into the name column yourself.
 5. Check `failed[]` in the result (see Partial failures), then read the rows with `get_list_entries` and tell the user how many rows were saved and which were not.
 
 Never add a row to a company or person list without `resourceId`. Metal then tries to match the row to a record from its values, and it can create a new company or person record in the CRM. On a `none` list, omit `resourceId` and `resourceType`.
@@ -62,7 +62,7 @@ Formats that are easy to get wrong:
 - A date must be a calendar date. "Q4 2025" or "FY25" fails. Use the period-end date, such as `"2025-12-31"`, and tell the user you did.
 - `null` clears a cell.
 
-`get_list_entries` returns cells in the same formats, except that a date comes back as an RFC3339 timestamp and a relationship cell carries the linked record's name.
+`get_list_entries` returns cells in the same formats, with three exceptions: a date comes back as an RFC3339 timestamp, a users cell comes back as `[{"id": "<user ID>", "type": "user"}]`, and a relationship cell carries the linked record's name.
 
 ## Users columns
 
@@ -71,7 +71,7 @@ A users cell holds user IDs, never names or emails.
 - Resolve each person with `search_users`. When the user means themselves, use `get_current_user`.
 - Treat a name as resolved only when one user clearly matches. When several match, ask the user which one, for example by email.
 - If no user matches, leave the cell unset and tell the user.
-- A write replaces the whole cell. To add a teammate to a cell that already has people, read the row with `get_list_entries`, then write the existing IDs plus the new one.
+- A write replaces the whole cell. To add a teammate to a cell that already has people, read the row with `get_list_entries`, take the `id` of each user in the cell, and write those ID strings plus the new one.
 
 ## Relationship cells
 
@@ -84,7 +84,7 @@ A users cell holds user IDs, never names or emails.
 
 ## Partial failures
 
-`add_list_entries` returns `created` and `failed`. Each `failed` item has the `index` of the row in the entries you sent and an `error`. Rows that are not in `failed` were saved.
+`add_list_entries` returns `created` and `failed`. Each `failed` item has the `index` of the row in the entries you sent and an `error`. Rows that are not in `failed` were saved. When every row was saved, the result has no `failed` key.
 
 - Each error names the column and the format it expected, for example `invalid value for column Revenue: ... expected {"unit": "USD", "value": 1500000}`. Only the first problem in a row is reported, so a fixed row can fail again on another column.
 - Fix and resend only the failed rows. Never resend the whole batch: a row linked to a record that is already on the list fails with `resource already exists in list`, and a row without a record is added a second time.
@@ -100,7 +100,7 @@ A users cell holds user IDs, never names or emails.
 
 ### Mapped cells write back to the record
 
-A list created in the Metal app can have mapped columns: in `get_list`, a column with a `mapping` that is not in `relationshipColumnIds`. Updating a mapped cell can change the linked deal, company, person or other record, and through a CRM integration the CRM too. Before you update a mapped cell:
+A list created in the Metal app can have mapped columns: in `get_list`, a column with a `mapping` that is not in `relationshipColumnIds`. Updating a mapped cell can change the linked deal, company, person or other record, and through a CRM integration the CRM too. Ask even when `get_list` shows `settings.writeBackEnabled: false`, because that setting does not cover every list type. Before you update a mapped cell:
 
 1. Tell the user the record, the field, its current value and the new value, and that the change goes to the record and the CRM, not only to the list.
 2. Wait for the user to confirm.
