@@ -17,10 +17,8 @@ PLUGIN_NAME = "metal"
 MARKETPLACE_NAME = "metal"
 PLUGIN_SOURCE = "./plugins/metal"
 
-# Hand-written skills live in Claude's default skills/ directory. Skills that
-# the Phase 2 sync owns live in synced-skills/, which only the sync writes.
-HAND_WRITTEN_SKILLS = "./skills/"
-SYNCED_SKILLS = "./synced-skills/"
+# Every skill lives in skills/, the directory Claude scans by default.
+SKILLS = "./skills/"
 
 MCP_CONFIG = {"mcpServers": {"metal": {"type": "http", "url": "https://mcp.metal.ai/mcp"}}}
 
@@ -83,8 +81,9 @@ class Layout:
     def codex_marketplace(self) -> Path:
         return self.root / ".agents" / "plugins" / "marketplace.json"
 
-    def skill_roots(self) -> list[Path]:
-        return [self.plugin / HAND_WRITTEN_SKILLS, self.plugin / SYNCED_SKILLS]
+    @property
+    def skills(self) -> Path:
+        return self.plugin / SKILLS
 
 
 @dataclass
@@ -134,15 +133,11 @@ def check_manifests(layout: Layout, report: Report) -> None:
     if claude.get("version") != codex.get("version"):
         report.error(layout.codex_manifest, f"version {codex.get('version')!r} differs from the Claude manifest's {claude.get('version')!r}")
 
-    # Claude always scans skills/ and adds the listed directories; Codex scans
-    # only what it lists. Both must end up with the same skill roots.
-    claude_skills = set(as_list(claude.get("skills"))) | {HAND_WRITTEN_SKILLS}
-    codex_skills = set(as_list(codex.get("skills")))
-    expected = {HAND_WRITTEN_SKILLS, SYNCED_SKILLS}
-    if claude_skills != expected:
-        report.error(layout.claude_manifest, f"skills must add exactly {SYNCED_SKILLS!r} to the default {HAND_WRITTEN_SKILLS!r}")
-    if codex_skills != expected:
-        report.error(layout.codex_manifest, f"skills must list exactly {sorted(expected)}")
+    # Claude scans skills/ by default; Codex scans only what it lists.
+    if "skills" in claude:
+        report.error(layout.claude_manifest, f"skills must be left out so Claude scans only the default {SKILLS!r}")
+    if codex.get("skills") != [SKILLS]:
+        report.error(layout.codex_manifest, f"skills must be [{SKILLS!r}]")
 
     # Claude reads .mcp.json at the plugin root by default; Codex needs it named.
     if "mcpServers" in claude:
@@ -297,21 +292,15 @@ def frontmatter_fields(lines: list[str]) -> dict[str, str]:
 
 
 def check_skills(layout: Layout, report: Report) -> None:
-    seen: dict[str, Path] = {}
-    skills = []
-    for root in layout.skill_roots():
-        if not root.is_dir():
-            report.error(root, "skill directory missing")
-            continue
-        skills.extend(sorted(p for p in root.iterdir() if p.is_dir()))
+    if not layout.skills.is_dir():
+        report.error(layout.skills, "skill directory missing")
+        return
+    skills = sorted(p for p in layout.skills.iterdir() if p.is_dir())
     for skill in skills:
         check_skill(skill, skills, report)
-        if skill.name in seen:
-            report.error(skill, f"skill name also used by {seen[skill.name]}")
-        seen[skill.name] = skill
     for stray in sorted(layout.plugin.rglob("SKILL.md")):
-        if not any(stray.parent.parent == root for root in layout.skill_roots()):
-            report.error(stray, "SKILL.md outside skills/<name>/ or synced-skills/<name>/ does not load")
+        if stray.parent.parent != layout.skills:
+            report.error(stray, "SKILL.md outside skills/<name>/ does not load")
 
 
 def check_skill(skill: Path, skills: list[Path], report: Report) -> None:
@@ -396,10 +385,3 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_codex_listing_fields(layout, report)
     return report.errors
 
-
-def as_list(value: object) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value]
-    return list(value)  # type: ignore[arg-type]

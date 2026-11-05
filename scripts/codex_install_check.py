@@ -36,7 +36,7 @@ PROMPT_SKILL = re.compile(rf"^- {re.escape(PLUGIN_NAME)}:([a-z0-9-]+): ", re.MUL
 
 
 def expected_skills(layout: Layout) -> set[str]:
-    return {skill.name for root in layout.skill_roots() for skill in root.iterdir() if (skill / "SKILL.md").is_file()}
+    return {skill.name for skill in layout.skills.iterdir() if (skill / "SKILL.md").is_file()}
 
 
 def prompt_skills(prompt_input: list[dict]) -> set[str]:

@@ -46,8 +46,7 @@ Members need no GitHub account. Each member signs in to Metal with their own acc
 | `plugins/metal/.claude-plugin/plugin.json` | The Claude manifest |
 | `plugins/metal/.codex-plugin/plugin.json` | The Codex manifest |
 | `plugins/metal/.mcp.json` | The Metal MCP server, shared by both manifests |
-| `plugins/metal/skills/` | Hand-written skills |
-| `plugins/metal/synced-skills/` | Workflow skills |
+| `plugins/metal/skills/` | The skills |
 | `scripts/` | The repository checks and the release packager |
 
 ## Checks
@@ -62,7 +61,7 @@ python3 scripts/codex_install_check.py
 
 `scripts/check.py` checks that both manifests agree on name, version, skill directories and MCP config, that `.mcp.json` holds only the Metal server, that skill frontmatter uses only keys claude.ai accepts, and that the icon and listing fields are set.
 
-Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` and `synced-skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
+Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
 
 CI runs the same commands on every pull request, with Claude Code and Codex pinned.
 
