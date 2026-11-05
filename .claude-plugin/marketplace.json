@@ -9,7 +9,7 @@
     {
       "name": "metal",
       "source": "./plugins/metal",
-      "description": "Connects Metal's MCP server and adds skills for deal research, dashboards, workflows, routines, tasks and your Metal skill library.",
+      "description": "Connects Metal's MCP server and adds skills for deal research, lists, dashboards, workflows, routines, tasks and your Metal skill library.",
       "author": {
         "name": "Metal",
         "url": "https://www.metal.ai"

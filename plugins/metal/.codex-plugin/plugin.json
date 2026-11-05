@@ -1,7 +1,7 @@
 {
   "name": "metal",
-  "version": "0.2.1",
-  "description": "Connects Metal's MCP server and adds skills for deal research, dashboards, workflows, routines, tasks and your Metal skill library.",
+  "version": "0.2.2",
+  "description": "Connects Metal's MCP server and adds skills for deal research, lists, dashboards, workflows, routines, tasks and your Metal skill library.",
   "author": {
     "name": "Metal",
     "url": "https://www.metal.ai"
@@ -12,7 +12,7 @@
   "interface": {
     "displayName": "Metal",
     "shortDescription": "Metal's MCP server and skills",
-    "longDescription": "Connects Metal's MCP server, so you can work with your firm's companies, deals, people, documents, lists and workflows in Metal. Adds skills for researching deals and reading deal documents, building dashboards, building, running, debugging and fixing workflows, running routines, managing tasks, understanding investor-relations records, answering questions about Metal from its docs, and using the skills you and your firm keep in Metal. Sign in with your Metal account after you install.",
+    "longDescription": "Connects Metal's MCP server, so you can work with your firm's companies, deals, people, documents, lists and workflows in Metal. Adds skills for researching deals and reading deal documents, building and updating lists, building dashboards, building, running, debugging and fixing workflows, running routines, managing tasks, understanding investor-relations records, answering questions about Metal from its docs, and using the skills you and your firm keep in Metal. Sign in with your Metal account after you install.",
     "developerName": "Metal",
     "category": "Productivity",
     "capabilities": [],
