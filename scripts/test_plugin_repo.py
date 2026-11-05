@@ -27,7 +27,7 @@ class RepoFixture(unittest.TestCase):
             shutil.copytree(REPO / name, self.tmp / name)
         shutil.copy(REPO / "LICENSE", self.tmp / "LICENSE")
         self.layout = Layout(self.tmp)
-        self.skill_md = self.layout.plugin / "synced-skills" / "workflow-debugging" / "SKILL.md"
+        self.skill_md = self.layout.skills / "workflow-debugging" / "SKILL.md"
 
     def edit_json(self, path: Path, change) -> None:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -65,13 +65,17 @@ class ManifestTest(RepoFixture):
         self.edit_json(self.layout.claude_manifest, lambda m: m.update(name="other"))
         self.assert_error("name must be 'metal'")
 
-    def test_codex_must_list_both_skill_roots(self) -> None:
-        self.edit_json(self.layout.codex_manifest, lambda m: m.update(skills="./skills/"))
-        self.assert_error("skills must list exactly")
+    def test_codex_must_list_skills(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m.pop("skills"))
+        self.assert_error("skills must be ['./skills/']")
 
-    def test_claude_must_add_synced_skills(self) -> None:
-        self.edit_json(self.layout.claude_manifest, lambda m: m.pop("skills"))
-        self.assert_error("skills must add exactly")
+    def test_codex_must_list_only_skills(self) -> None:
+        self.edit_json(self.layout.codex_manifest, lambda m: m.update(skills=["./skills/", "./more-skills/"]))
+        self.assert_error("skills must be ['./skills/']")
+
+    def test_claude_must_not_list_skill_directories(self) -> None:
+        self.edit_json(self.layout.claude_manifest, lambda m: m.update(skills=["./more-skills/"]))
+        self.assert_error("skills must be left out")
 
     def test_claude_must_not_declare_mcp_servers(self) -> None:
         self.edit_json(self.layout.claude_manifest, lambda m: m.update(mcpServers="./.mcp.json"))
@@ -268,18 +272,14 @@ class SkillTest(RepoFixture):
             f.write("\nSee the `workflow-building` skill's `references/building-tools.md` for the error codes.\n")
         self.assertEqual(check_all(self.layout), [])
 
-    def test_duplicate_name_across_roots(self) -> None:
-        shutil.copytree(self.skill_md.parent, self.layout.plugin / "skills" / "workflow-debugging")
-        self.assert_error("skill name also used by")
-
     def test_skill_outside_a_skill_root(self) -> None:
-        stray = self.layout.plugin / "synced-skills" / "workflow-debugging" / "nested" / "SKILL.md"
+        stray = self.layout.skills / "workflow-debugging" / "nested" / "SKILL.md"
         stray.parent.mkdir()
         stray.write_text("---\nname: nested\ndescription: x\n---\n", encoding="utf-8")
         self.assert_error("does not load")
 
     def test_missing_skill_root(self) -> None:
-        shutil.rmtree(self.layout.plugin / "skills")
+        shutil.rmtree(self.layout.skills)
         self.assert_error("skill directory missing")
 
     def test_top_level_bin(self) -> None:
@@ -307,14 +307,14 @@ class LicenseTest(RepoFixture):
 
 class PackageTest(RepoFixture):
     def test_zip_has_plugin_root_at_top(self) -> None:
-        (self.layout.plugin / "synced-skills" / ".DS_Store").write_bytes(b"x")
+        (self.layout.skills / ".DS_Store").write_bytes(b"x")
         target = package.build(self.layout, self.tmp / "dist")
         self.assertEqual(target.name, f"metal-{plugin_version(self.layout)}.zip")
         with zipfile.ZipFile(target) as archive:
             names = archive.namelist()
         self.assertIn(".claude-plugin/plugin.json", names)
         self.assertIn(".mcp.json", names)
-        self.assertIn("synced-skills/workflow-debugging/SKILL.md", names)
+        self.assertIn("skills/workflow-debugging/SKILL.md", names)
         self.assertFalse(any(".DS_Store" in n for n in names))
         self.assertFalse(any(n.startswith("plugins/") for n in names))
 

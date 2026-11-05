@@ -10,9 +10,6 @@
   "homepage": "https://www.metal.ai",
   "repository": "https://github.com/getmetal/metal-plugins",
   "license": "Apache-2.0",
-  "skills": [
-    "./synced-skills/"
-  ],
   "icon": "./assets/icon.png",
   "privacyPolicyUrl": "https://www.metal.ai/legal/privacy-policy",
   "termsOfServiceUrl": "https://www.metal.ai/legal/terms-of-service",

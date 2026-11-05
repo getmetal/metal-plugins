@@ -7,7 +7,7 @@
     "url": "https://www.metal.ai"
   },
   "repository": "https://github.com/getmetal/metal-plugins",
-  "skills": ["./skills/", "./synced-skills/"],
+  "skills": ["./skills/"],
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Metal",

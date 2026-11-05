@@ -92,19 +92,13 @@ class CodexInstallCheckTest(unittest.TestCase):
         })
 
     def test_skill_directory_missing_from_codex_manifest_fails(self) -> None:
-        # Codex still copies synced-skills/ into its cache, but it does not load it.
+        # Codex still copies skills/ into its cache, but it does not load it.
         manifest = self.layout.codex_manifest
         data = json.loads(manifest.read_text(encoding="utf-8"))
-        data["skills"] = ["./skills/"]
+        data["skills"] = []
         manifest.write_text(json.dumps(data), encoding="utf-8")
-        self.assertEqual(
-            self.check(),
-            [
-                "Codex did not load the skill metal:running-workflows",
-                "Codex did not load the skill metal:workflow-building",
-                "Codex did not load the skill metal:workflow-debugging",
-            ],
-        )
+        expected = codex_install_check.expected_skills(self.layout)
+        self.assertEqual(self.check(), [f"Codex did not load the skill metal:{name}" for name in sorted(expected)])
 
     def test_skill_missing_from_prompt_fails(self) -> None:
         self.assertEqual(self.check(FAKE_HIDE_SKILL="workflow-debugging"), ["Codex did not load the skill metal:workflow-debugging"])
