@@ -15,7 +15,7 @@ An activity records what happened: a meeting, call or other interaction. A task 
 
 - "Spoke to the CIO on Tuesday" is an activity, not a completed task. Look for it with `get_activities`, not with the task tools.
 - Marking a task `completed` records that the team finished its own commitment. It is not evidence of contact with anyone. Do not report a completed task as a meeting or touchpoint.
-- To change what an activity says, use `update_activity`, not `update_task`.
+- To change an activity's participants, linked records, privacy or custom fields, use `update_activity`, not `update_task`. No Metal tool changes an activity's subject or notes.
 
 ## The distinctions that matter
 
@@ -105,7 +105,7 @@ Task reads return `sharedWith` and `isPrivate`.
 Read the error before you retry; it names the field that was rejected. Never retry an unchanged call after an invalid-input error. The rejection will repeat.
 
 - **`... must be provided together`:** you sent half of a type and ID pair. Send both, or neither.
-- **`... cannot be combined with ...` or `... not both`:** you sent a replacing field with its add or remove form, or a value with its clear flag. Pick one.
+- **`... cannot be combined with ...`, `... cannot both be set` or `... not both`:** you sent a replacing field with its add or remove form, or a value with its clear flag. Pick one.
 - **`nothing to update`:** every field was empty. Decide what actually changes first.
 - **`... not a valid id` or a not-found error on a linked record:** re-resolve the record with its search tool and copy the ID from the result.
 - **`tags must reference task tags in the current organization`:** the tag ID is not a task tag in this organization.

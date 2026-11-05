@@ -88,7 +88,7 @@ class CodexInstallCheckTest(unittest.TestCase):
     def test_expected_skills_come_from_the_repository(self) -> None:
         self.assertEqual(codex_install_check.expected_skills(Layout(REPO)), {
             "skill-library", "workflow-building", "running-workflows", "workflow-debugging", "workflow-fixing", "deal-research",
-            "dashboard-building", "metal-sdk-scripts", "running-routines", "working-with-tasks", "working-with-ir-records", "metal-product-knowledge",
+            "dashboard-building", "metal-sdk-scripts", "running-routines", "working-with-tasks", "working-with-ir-records", "metal-product-knowledge", "working-with-lists",
         })
 
     def test_skill_directory_missing_from_codex_manifest_fails(self) -> None:
