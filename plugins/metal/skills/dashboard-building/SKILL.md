@@ -5,6 +5,8 @@ description: "Use when a user wants to create or change a Metal canvas dashboard
 
 # Metal Dashboard Building
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 A Metal canvas dashboard is a free-standing dashboard of widgets. Each widget has a type, a data source, a title and a position on a 12-column grid. This skill says how to choose the type and data source, what to confirm with the user, and how to add and edit widgets with the Metal dashboard tools. The output contracts that the tool schemas do not carry are in the references.
 
 ## What the dashboard tools reach
@@ -64,7 +66,7 @@ Rules for the behavior question:
    - **script:** write the script as `references/script-widgets.md` describes. Its `_output` follows `references/chart-table-output.md` for a chart or table, or `references/html-widgets.md` for `HTML`. Find SDK methods with `list_sdk_methods` and confirm each request and response shape with `get_sdk_method` before you use it.
    - **agent chart or table:** write a `prompt` that says what to fetch, how to filter, rank or compute it, which columns or series to show, the units, and what to show when nothing matches.
    - **agent HTML:** write the `prompt` and also pass `widgetCode`, a skeleton fragment with empty states and no real data (see `references/html-widgets.md`). The server validates it and stores it as the widget's approved template; the render-time agent keeps that structure and fills in the data. Without `widgetCode` there is no template to keep.
-   - **LIST:** find the list with `list_lists` (filter by `resourceType`) and confirm it with `get_list`. Ask the user when several lists match. `resourceListId` is checked only for format on save, so a wrong ID still saves.
+   - **LIST:** find the list with `list_lists` (filter by `resourceType`) and confirm it with `get_list`. Ask the user when several lists match. Use the ID from `get_list` for the list the user confirmed.
    - **static:** write a render script that assigns `_output = {"widgetCode": "<fragment>"}` (see `references/html-widgets.md`).
 4. Call `add_dashboard_widget` with `dashboardId`, `title`, `widgetType`, `dataSource` and the field for that source: `script`, `prompt` (plus `widgetCode` for agent HTML), or `resourceListId`. Omit `col` and `row` to place it on the next free row. The default size is 6 by 4 cells, or 12 by 6 for `LIST`.
 5. For a `static` widget, call `refresh_dashboard_widget` so it renders.
@@ -73,9 +75,9 @@ Rules for the behavior question:
 
 ### What the server checks when you save
 
-- **script:** the server runs the script once before it saves. A script that raises, sets no `_output`, or returns an `_output` that fails the check for its widget type is refused with the error and its details (error type, traceback, line), and nothing is saved. If the script runtime is unavailable, the script saves without this check.
+- **script:** the server runs the script once before it saves. A script that raises, sets no `_output`, or returns an `_output` that fails the check for its widget type is refused with the error and its details (error type, traceback, line), and nothing is saved. If verification is unavailable, report the gap and get the user's decision before persisting an unverified change.
 - **agent HTML:** `widgetCode` is validated against the fragment contract on add and update. A fragment wrapped in `<html>` or `<body>` is unwrapped first.
-- **static:** nothing is checked on save, and the rendered fragment is not validated either. Until the first render finishes, the widget shows a generating placeholder.
+- **static:** author the fragment to the same HTML contract and verify its output after refreshing. Until the first render finishes, the widget shows a generating placeholder.
 - A successful save does not mean the data is right.
 
 ### Check the widget after saving
@@ -100,7 +102,7 @@ Rules for the behavior question:
 | agent chart or table | `prompt` | |
 | agent HTML | `prompt`, `widgetCode` | Changing `prompt` without `widgetCode` clears the stored template. To keep the design, pass both in one call. |
 | script | `script` | Checked before save, as for add. |
-| static | `script` | Not checked. Call `refresh_dashboard_widget` afterwards. |
+| static | `script` | Follow the HTML contract. Call `refresh_dashboard_widget` afterwards. |
 | resourceList | none | Title and geometry only. To show a different list, remove and re-add. |
 
 Every widget accepts `title`, `col`, `row`, `width` and `height`. `prompt` and `script` can't be sent together. An empty string leaves a field unchanged, so a field can't be cleared.

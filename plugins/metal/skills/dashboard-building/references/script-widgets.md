@@ -8,7 +8,7 @@ The `metal-sdk-scripts` skill covers the Metal SDK and `run_metal_sdk_query`. A 
 
 - `metal`: the read-only Metal SDK client. The method set is closed. Find methods with `list_sdk_methods` and read each one with `get_sdk_method` (signature, route, response contract, examples) before you call it. Never invent a method name. If no method fits, stop and tell the user.
 - `input`: a dict with three keys.
-  - `input["context"]`: on a canvas dashboard, `orgId`, `userId` and `dashboardId`. It carries no deal, company, list, fund, person or task ID.
+  - `input["context"]`: on a canvas dashboard, the organization, user and dashboard identifiers. It carries no deal, company, list, fund, person or task ID.
   - `input["placement"]`: the widget's own placement (title, type, layout). Rarely needed.
   - `input["parameters"]`: the viewer's current data-control selections, keyed by parameter `id`. It is empty on the first render. Read it with `input.get("parameters") or {}` and fall back to each control's `default`.
 - `json`, `datetime`, `math`, `statistics`: already imported.

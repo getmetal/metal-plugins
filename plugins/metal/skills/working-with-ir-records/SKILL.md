@@ -5,6 +5,8 @@ description: Use for Metal investor-relations records (funds, limited partners, 
 
 # Working with Metal IR Records
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Metal's investor-relations (IR) model has five record types. Choose by the role a record plays in the fundraise, not by the noun the user happened to use.
 
 The Metal tools can read all five and can update a limited partner. They cannot create a fund, limited partner or fundraising process. When a record is missing, explain which records the user needs and tell them to create them in the Metal app.

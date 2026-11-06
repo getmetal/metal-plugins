@@ -5,6 +5,8 @@ description: Metal skills are procedures, templates and house styles that the us
 
 # Metal Skill Library
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Metal keeps a skill library for each organization. A Metal skill is a SKILL.md document, sometimes with files, written for Metal's in-app assistant. This skill says when to check the library, how to load what you find, and how far to trust it.
 
 ## Metal skills are not this client's skills

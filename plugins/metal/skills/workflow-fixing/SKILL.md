@@ -5,6 +5,8 @@ description: "Use when a Metal workflow run failed and the user wants the workfl
 
 # Metal Workflow Fixing
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Use this skill when the user brings a failed run and wants the workflow fixed. The goal is a workflow definition that runs successfully, proven by a dry run before any live run.
 
 This skill is a loop on top of three others. Read run evidence the way `workflow-debugging` says. Edit the definition the way `workflow-building` says: load it before the first edit and follow its Write Safety, Building process and Warnings Envelope sections. Start runs and reruns the way `running-workflows` says, including its Run Mode rules. For diagnosis without edits, use `workflow-debugging` alone.

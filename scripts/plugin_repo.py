@@ -30,11 +30,23 @@ SKILL_NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_CHARS = 64
 MAX_DESCRIPTION_CHARS = 1024
 
-# The metal-skills names the copied skills were renamed from. The left boundary
+# The builtin names the copied skills were renamed from. The left boundary
 # keeps HTML attributes such as data-metal-workflow-id from matching.
 LEGACY_SKILL_NAME = re.compile(r"(?<![\w-])metal-workflow-[a-z-]+")
 
-REFERENCE_MENTION = re.compile(r"references/[A-Za-z0-9_\-./]+")
+REFERENCE_MENTION = re.compile(r"(?<![\w./-])references/[A-Za-z0-9_\-./]+")
+MARKDOWN_LINK = re.compile(r"\]\(([^\s)]+)\)")
+SAFETY_LINK = "[Safety and confirmation](../../references/safety.md)"
+
+# Public distribution must not regain identifiers or privileged-access guidance.
+# Keep these structural patterns rather than a list of customer or staff names.
+PRIVATE_CONTENT = {
+    "issue tracker reference": re.compile(r"linear\.app|\b[A-Z]{2,}-\d{3,}\b"),
+    "record ID": re.compile(r"\b[0-9a-fA-F]{24}\b"),
+    "staff-access detail": re.compile(r"metal team|multi-org|get_orgs|\borgId\b|org-selection tools", re.I),
+    "private repository URL": re.compile(r'github\.com/getmetal/(?!metal-plugins(?:[/.#\s`)"]|$))[\w-]+'),
+    "non-public host": re.compile(r"https?://[^\s/]*(?:staging|localhost|127\.0\.0\.1|\.internal\b)", re.I),
+}
 
 VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
@@ -237,6 +249,9 @@ def check_codex_listing_fields(layout: Layout, report: Report) -> None:
     if codex is None:
         return
     interface = codex.get("interface") or {}
+    short_description = interface.get("shortDescription")
+    if not isinstance(short_description, str) or not 1 <= len(short_description.strip()) <= 30:
+        report.error(layout.codex_manifest, "interface.shortDescription must be 1 to 30 characters")
     long_description = interface.get("longDescription")
     if not isinstance(long_description, str) or not long_description.strip():
         report.error(layout.codex_manifest, "interface.longDescription must be a nonblank string")
@@ -324,6 +339,8 @@ def check_skill(skill: Path, skills: list[Path], report: Report) -> None:
     description = fields.get("description", "")
     if not description or len(description) > MAX_DESCRIPTION_CHARS:
         report.error(skill_md, f"description must be 1 to {MAX_DESCRIPTION_CHARS} characters")
+    if SAFETY_LINK not in parts[1]:
+        report.error(skill_md, "must load the shared safety and confirmation reference")
     check_skill_text(skill, skills, report)
 
 
@@ -331,7 +348,7 @@ def check_skill_text(skill: Path, skills: list[Path], report: Report) -> None:
     for md in sorted(skill.rglob("*.md")):
         for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
             for legacy in LEGACY_SKILL_NAME.findall(line):
-                report.error(f"{md}:{lineno}", f"{legacy!r} is a metal-skills name; use the plugin skill name")
+                report.error(f"{md}:{lineno}", f"{legacy!r} is a builtin skill name; use the plugin skill name")
             for mention in REFERENCE_MENTION.findall(line):
                 check_reference(skill, skills, mention.rstrip("."), line, f"{md}:{lineno}", report)
 
@@ -371,6 +388,35 @@ def check_no_bin(layout: Layout, report: Report) -> None:
         report.error(layout.plugin / "bin", "claude.ai rejects a plugin with a top-level bin/ directory")
 
 
+def check_public_content(layout: Layout, report: Report) -> None:
+    for path in sorted(layout.plugin.rglob("*")):
+        if not path.is_file() or path.suffix not in {".md", ".json"}:
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for label, pattern in PRIVATE_CONTENT.items():
+                if pattern.search(line):
+                    report.error(f"{path}:{number}", f"public files must not contain a {label}")
+
+
+def check_documentation(layout: Layout, report: Report) -> None:
+    expected = {p.parent.name for p in layout.skills.glob("*/SKILL.md")}
+    for readme in (layout.root / "README.md", layout.plugin / "README.md"):
+        if not readme.is_file():
+            report.error(readme, "missing")
+            continue
+        text = readme.read_text(encoding="utf-8")
+        listed = set(re.findall(r"^(?:\| `metal:|\- `)([a-z0-9-]+)`", text, re.M))
+        if listed != expected:
+            report.error(readme, f"skill inventory differs: missing {sorted(expected - listed)}, extra {sorted(listed - expected)}")
+    for path in sorted(layout.plugin.rglob("*.md")):
+        for target in MARKDOWN_LINK.findall(path.read_text(encoding="utf-8")):
+            if re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) or target.startswith("#"):
+                continue
+            dest = (path.parent / target.split("#", 1)[0]).resolve()
+            if not dest.is_relative_to(layout.plugin.resolve()) or not dest.exists():
+                report.error(path, f"broken or out-of-plugin Markdown link {target!r}")
+
+
 def check_all(layout: Layout | None = None) -> list[str]:
     layout = layout or Layout()
     report = Report()
@@ -383,5 +429,7 @@ def check_all(layout: Layout | None = None) -> list[str]:
     check_icon(layout, report)
     check_listing_links(layout, report)
     check_codex_listing_fields(layout, report)
+    check_public_content(layout, report)
+    check_documentation(layout, report)
     return report.errors
 

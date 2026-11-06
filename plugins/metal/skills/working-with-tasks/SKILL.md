@@ -5,6 +5,8 @@ description: Use when the user wants to read, find, reassign, reschedule, comple
 
 # Working with Metal Tasks
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 A Metal task records what the team intends to do next on a record, who must do it, and when it is due. This skill covers reading and changing tasks that already exist.
 
 The Metal tools cannot create a task. When the user asks for a new task, tell them to create it in the Metal app, and offer to draft its title, assignee, due date and related records.

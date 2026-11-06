@@ -5,6 +5,8 @@ description: "Use when a Metal task needs a read-only Python script run through 
 
 # Metal SDK Scripts
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 `run_metal_sdk_query` runs a short Python script inside Metal. The script gets a `metal` object whose methods read the user's Metal data, and returns one compact JSON result. Use it to join, filter or aggregate data that would otherwise take many separate tool calls. This skill says when to use it, how to find methods, what the script may do, and how to stay inside its limits.
 
 ## When the tool is missing

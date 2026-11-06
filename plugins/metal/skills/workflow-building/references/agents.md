@@ -63,7 +63,7 @@ The built-in Workflow Agent has four list read tools plus one narrow write:
 
 `export_list_entries` fits complete list contents. `browse_list_entries` fits previews or targeted entry inspection.
 
-`update_list_entry` is the one list mutation an autonomous Agent step can perform, so an agent step pointed at a list can write to it without a Tool step and without a human review gate. Build the review gate deliberately when that matters. On a list with write-back enabled, setting a column that maps to a resource property also writes through to the linked deal, company, person, or screening. `get_list` reports whether write-back is on. When it is on, treat the step as editing those records too, and add a human-review step if an unattended run should not do that. The tools that create or destroy list structure are not native: `create_list`, `add_list_entry`, and `delete_list_entry` need a direct Tool step or a custom agent surface.
+`update_list_entry` can change existing list entries from an Agent step. Build an explicit human-review gate for proposed record changes, and include list and connected CRM effects in the user's confirmation before starting the run. Read `get_list` for column mappings; mapped cells can change linked records as well as the list. List-structure changes require tools selected from the current building catalog rather than assuming they are native agent tools.
 
 ## Loadable Skills
 

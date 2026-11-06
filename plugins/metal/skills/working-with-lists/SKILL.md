@@ -5,6 +5,8 @@ description: Use when the user wants to save results as a Metal list, create a l
 
 # Working with Metal Lists
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 A Metal list is a table of rows with typed columns. On a typed list, such as a company or deal list, each row is linked to one Metal record. On a custom list (`resourceType: "none"`), rows are not linked to records.
 
 ## What the tools can and cannot do
@@ -26,7 +28,7 @@ When the user asks to save companies, people or deals that you showed them, the 
 1. Pick the resource type. Plan one column for each attribute you showed, in the same order, with the column type that fits the value (see Column types below).
 2. On a typed list, do not plan a name column. `create_list` adds one as the first column, such as "Company Name" on a company list, and it shows each row's linked record name and follows renames. Its tool description names the column for each list type. A text column you pass with that name is dropped. On a `none` list, make the first column a `string` column called `Name`; Metal shows a text column with that exact name as the row's name.
 3. Call `create_list`. Keep the column IDs from its result. Cell values are keyed by column ID, not by column name.
-4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. When a search returns several plausible records for one name, such as "Duck Creek" and "Duck Creek Technologies", ask the user which one. On a typed list, leave the name column out of `values`; it fills from the linked record. On a `none` list, write each row's name into `Name`.
+4. Call `add_list_entries` with up to 1,000 rows per call. On a typed list, link each row to its record with `resourceId` and `resourceType`, copied from the search result where you found it. When a search returns several plausible records for one name, such as a full legal name and a similar trading name, ask the user which one. On a typed list, leave the name column out of `values`; it fills from the linked record. On a `none` list, write each row's name into `Name`.
 5. Check `failed[]` in the result (see Partial failures), then read the rows with `get_list_entries` and tell the user how many rows were saved and which were not.
 
 Never add a row to a company or person list without `resourceId`. Metal then tries to match the row to a record from its values, and it can create a new company or person record in the CRM. On a `none` list, omit `resourceId` and `resourceType`.

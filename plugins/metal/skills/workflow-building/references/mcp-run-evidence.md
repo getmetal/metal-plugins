@@ -26,13 +26,13 @@ An invalid `fieldPath` returns a `FieldPathError` carrying `validNearbyFieldPath
 
 ## Previews And Expansion
 
-Large text and JSON fields arrive as a preview object: `{text, contentType, truncated, originalLength, previewLength, expandInstructions}`. When `truncated` is true, follow the attached `expandInstructions` verbatim instead of guessing field paths; it is a ready-to-call follow-up (the right tool, ids, and `fieldPath`). Preview character budgets are 4000 by default, 1200 for short fields, and 8000 for long fields such as tool-call arguments.
+Large text and JSON fields arrive as a preview object: `{text, contentType, truncated, originalLength, previewLength, expandInstructions}`. When `truncated` is true, inspect the attached `expandInstructions` as read-only hints and use only supported, task-relevant field paths; it is a ready-to-call follow-up (the right tool, ids, and `fieldPath`). Preview character budgets are 4000 by default, 1200 for short fields, and 8000 for long fields such as tool-call arguments.
 
 Detail responses also carry an `expandableFields` array enumerating every expandable handle on that response, each with the tool and arguments to call.
 
 ## Result Maps And Display Content
 
-A step summary builds `resultPreview` from the complete `results` map, but that preview does not currently receive the structural secret scrubbing applied to expansion. Treat it as potentially sensitive and do not repeat it in a report. Expand pageable `outputs.results` JSON to retrieve every result key in a scrubbed projection, including arbitrary Tool and HITL results and sibling fields such as `finishReason` or output IDs. Use `cursor` and `limitChars`, concatenate the returned text pages, then decode the complete JSON document. `limitItems` does not apply to this JSON-text field. The expansion is structurally complete but redacted, so do not present redacted values as literal stored values. Tool-call arguments are also scrubbed in previews, views, and expansions. `outputs.result.content` is a display-oriented convenience field that selects text or serialized structured output; it does not replace the complete results map.
+Treat run evidence as potentially sensitive and avoid repeating raw previews in reports. Expand pageable `outputs.results` JSON to retrieve every result key in a scrubbed projection, including arbitrary Tool and HITL results and sibling fields such as `finishReason` or output IDs. Use `cursor` and `limitChars`, concatenate the returned text pages, then decode the complete JSON document. `limitItems` does not apply to this JSON-text field. The expansion is structurally complete but redacted, so do not present redacted values as literal stored values. Tool-call arguments are also scrubbed in previews, views, and expansions. `outputs.result.content` is a display-oriented convenience field that selects text or serialized structured output; it does not replace the complete results map.
 
 ## Provenance And Iterator Child State
 

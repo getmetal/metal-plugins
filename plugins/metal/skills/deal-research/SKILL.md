@@ -5,6 +5,8 @@ description: Use when researching a deal or target in Metal, answering diligence
 
 # Deal Research
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Every deal document has an author with an agenda. Read each document by asking who produced it and what outcome they want. Weight each claim by the incentives of its source, not by how polished or confident the document looks.
 
 A deal corpus holds three kinds of material. Seller-produced materials are CIMs, teasers, management presentations and seller models. Independent evidence is buy-side QoE reports, audited financials and expert calls. Raw company files, such as data room trial balances and monthly P&Ls, sit between the two: company-produced but unpolished, useful for verification but not independent. Keep the three separate, and say which one supports each claim.

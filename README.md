@@ -59,7 +59,7 @@ claude plugin validate --strict .
 python3 scripts/codex_install_check.py
 ```
 
-`scripts/check.py` checks that both manifests agree on name, version, skill directories and MCP config, that `.mcp.json` holds only the Metal server, that skill frontmatter uses only keys claude.ai accepts, and that the icon and listing fields are set.
+`scripts/check.py` checks that both manifests agree on name, version, skill directories and MCP config, that `.mcp.json` holds only the Metal server, that skill frontmatter uses only keys claude.ai accepts, and that the icon and listing fields are set. It also checks README skill inventories, packaged Markdown links, shared safety guidance, and structural patterns for non-public identifiers and access details. These checks supplement manual disclosure review and a full-history secret scan.
 
 Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
 

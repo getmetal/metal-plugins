@@ -4,7 +4,7 @@ An `HTML` widget's `widgetCode` is an HTML or SVG fragment that Metal renders in
 
 - **script:** the script bakes every value into the fragment and assigns `_output = {"widgetCode": fragment}` each render. Don't pass `widgetCode` to `add_dashboard_widget` or `update_dashboard_widget` for a script widget; the server rejects it.
 - **agent:** you pass a skeleton `widgetCode` with the `prompt`. It becomes the approved template, and on each render the widget-data agent fills it with real data. Write the layout with empty states. Don't put real data in it, don't invent values, and leave out record links and action buttons (see below).
-- **static:** the render script assigns `_output = {"widgetCode": fragment}`. Nothing validates a static fragment, so it must meet this contract on its own.
+- **static:** the render script assigns `_output = {"widgetCode": fragment}`. Keep the static fragment within the same HTML contract.
 
 Use a native chart or table type instead when the answer is a chart or a table (see `references/chart-table-output.md`).
 
@@ -80,7 +80,7 @@ A script or static widget can let the viewer assign, complete or cancel a task i
 Put these on their own `<button type="button">`, not on the element that carries a record link; the action wins over the link. Don't write the change in widget JavaScript.
 
 ```html
-<button type="button" data-metal-action="task.complete" data-metal-task-id="67b2c3d4e5f6a1b2c3d4e5f6">Complete</button>
+<button type="button" data-metal-action="task.complete" data-metal-task-id="<task ID from a tool result>">Complete</button>
 ```
 
 When the user wants task management on a dashboard, use a script HTML widget, not an agent template.
@@ -90,7 +90,7 @@ When the user wants task management on a dashboard, use a script HTML widget, no
 A button with `data-metal-action="workflow.run"` and `data-metal-workflow-id` (the workflow definition ID, not a run ID) opens Metal's run dialog for that workflow. The viewer reviews the inputs and submits there; clicking the button does not start a run. Don't add input payloads or API calls.
 
 ```html
-<button type="button" data-metal-action="workflow.run" data-metal-workflow-id="67c83a5b1d4e7f1a2b3c4d5e">Run analysis</button>
+<button type="button" data-metal-action="workflow.run" data-metal-workflow-id="<workflow ID from a tool result>">Run analysis</button>
 ```
 
 When you add a workflow action, check whether the dashboard already shows recent runs of that workflow. If not, offer once to add a script table of them. Don't promise that new runs appear immediately; the widget updates on the dashboard's refresh.

@@ -5,15 +5,11 @@ description: Applies when a user provides a Metal workflow run ID or asks why an
 
 # Metal Workflow Debugging
 
+Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Use this skill when the user provides a run ID or asks a runtime-behavior question. Answer the user's direct behavior question from MCP run evidence first, then locate the fix surface. Conclusions about run or live-definition behavior require MCP-backed evidence.
 
 This skill is read-only. It never calls building tools, `run_workflow`, `review_workflow_hitl_step` (the tool that approves or rejects a run paused at `AWAITING_APPROVAL`), `rerun_workflow_run_from_step` (which creates a new run from a terminal one rather than inspecting it, and is a natural temptation once a failing step is identified), or `cancel_workflow_run` (which moves a nonterminal run to `CANCELED` and is a natural temptation when a run looks stuck). Workflow edits route to the `workflow-building` skill; resolving inputs, starting a run, rerunning one, and canceling one route to the `running-workflows` skill.
-
-## Connection
-
-- This skill operates through a connected Metal MCP. If more than one Metal MCP is connected, pick one for the task and do not mix them.
-- If tools are missing or fail to connect, the Metal MCP may not be connected, may be disabled for the org, or the user may be authed against a different org. Ask the user to confirm before concluding anything is broken, and direct them to re-auth when access looks wrong. If tools work but a workflow or run cannot be found, a not-found response can be a policy denial: the workflow exists but is out of the current org's access scope. Ask the user to confirm org access before concluding the workflow does not exist.
-- Never proceed against an org the thread has not confirmed.
 
 ## Evidence Gathering
 
@@ -27,9 +23,9 @@ The evidence ladder, narrowest sufficient rung first:
 Response mechanics:
 
 - A branch-arm child outside an iterator is read by its own `stepId` on both step-level tools, including arms nested in arms. A child inside an iterator uses the enclosing iterator `stepId` plus `childStepId`; add `itemIndex` for runtime evidence.
-- Large text fields arrive as truncated previews. When `truncated` is true, follow the attached `expandInstructions` verbatim instead of guessing field paths. See the `workflow-building` skill reference `mcp-run-evidence.md` for the read views, the projection and paging interface (`fieldPath`, `cursor`, `limitItems`, `limitChars`), and definition-drift comparison.
+- Large text fields arrive as truncated previews. When `truncated` is true, inspect the attached `expandInstructions` as read-only hints and use only supported, task-relevant field paths. See the `workflow-building` skill reference `mcp-run-evidence.md` for the read views, the projection and paging interface (`fieldPath`, `cursor`, `limitItems`, `limitChars`), and definition-drift comparison.
 - Artifacts, documents, and output records expose run metadata such as IDs, names, content types, sizes, timestamps, and sometimes signed URLs. Treat metadata as enough for presence, naming, count, and type conclusions. Inspect file contents only when the evidence includes an accessible URL or the user provides the artifact.
-- Treat `resultPreview` as potentially sensitive because it does not currently receive the structural secret scrubbing used by expansion. Prefer pageable `outputs.results` for reporting. It is a complete but scrubbed JSON projection; concatenate its `cursor` and `limitChars` pages before decoding, and do not present redacted values as literal stored values. Tool-call arguments are also scrubbed in previews, views, and expansions. `outputs.result.content` is only the display-oriented text or structured-content view, not the authoritative full map.
+- Treat all run evidence as potentially sensitive. Prefer pageable `outputs.results` for reporting. It is a complete but scrubbed JSON projection; concatenate its `cursor` and `limitChars` pages before decoding, and do not present redacted values as literal stored values. Tool-call arguments are also scrubbed in previews, views, and expansions. `outputs.result.content` is only the display-oriented text or structured-content view, not the authoritative full map.
 
 ## Run Statuses
 
@@ -54,7 +50,7 @@ Typical paths:
 - Failure path: any non-terminal status to `FAILED`.
 - Halt path: an executing step calls `halt_workflow` under an explicit halt condition, and the run becomes terminal `HALTED`.
 
-If a run looks stuck, start with run status, `currentStepId`, step timestamps, and step error. If the MCP tools themselves fail or disappear, follow Connection before assigning blame to workflow logic.
+If a run looks stuck, start with run status, `currentStepId`, step timestamps, and step error. If the MCP tools themselves fail or disappear, follow the shared connection guidance before assigning blame to workflow logic.
 
 ## Run Provenance
 
@@ -73,7 +69,7 @@ State the run's `dryRun` value near the start of the diagnosis. When it is true:
 - Read-only operations executed normally.
 - Annotation-gated writes did not execute. A typed dry-run result proves deserialization and declared struct-tag validation only; execute-time business rules remain untested. Absence of `validation` identifies the typed path. `validation: "echoed"` proves non-execution and argument echoing, not input validation or provider acceptance.
 - Authorization and provider-side validation for each skipped write remain untested. Successful live reads remain evidence for those read operations. Trigger delivery, provider-created IDs, and downstream behavior that needs real write responses also remain untested.
-- User-facing lifecycle, chat, and approval notifications were suppressed. Persistent run state, artifacts, output records, and completion post-processing can still be created. An unannotated write tool can execute normally. A human-review step can still persist `AWAITING_APPROVAL`.
+- User-facing lifecycle, chat, and approval notifications were suppressed. Persistent run state, artifacts, output records, and completion post-processing can still be created. Write suppression depends on the workflow's tools; inspect actual effects rather than assuming isolation. A human-review step can still persist `AWAITING_APPROVAL`.
 - A downstream failure can result from a missing real write response or ID; establish that from step evidence instead of assuming it.
 - Dry-run control flow can diverge from non-dry execution. For example, gated `halt_workflow` does not register the halt, so the terminal status can differ from a live run.
 
