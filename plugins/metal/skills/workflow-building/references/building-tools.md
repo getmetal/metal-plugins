@@ -90,7 +90,7 @@ Surface advisory warnings to the user rather than dropping them. A terminal side
 - Not found (404, "Unable to find workflow") can be a policy denial: the workflow is out of the current org's access scope, not necessarily missing. See Connection in `SKILL.md`.
 - Forbidden (403, "managed by version control") means a global workflow managed by version control. It cannot be edited via the API.
 - `workflow_deprecated` (400): deprecated workflows reject building writes outright.
-- A read-only MCP connection (scope `read:workflows` without `write:workflows`) can inspect workflows and call `list_workflow_building_options`, but every authoring write is rejected. When reads and catalog calls succeed while all writes fail on authorization, re-check the connection's granted scopes and reconnect with write access. Scope checks apply only on a single-org server; a server with org-selection tools bypasses OAuth scopes entirely, so uniform authoring-write failures there are policy or validation, not scope.
+- A read-only MCP connection (scope `read:workflows` without `write:workflows`) can inspect workflows and call `list_workflow_building_options`, but every authoring write is rejected. When reads and catalog calls succeed while all writes fail on authorization, re-check the connection's granted scopes and reconnect with write access.
 
 ## The Building Catalog
 

@@ -5,6 +5,8 @@ description: Use when researching a deal or target in Metal, answering diligence
 
 # Deal Research
 
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+
 Every deal document has an author with an agenda. Read each document by asking who produced it and what outcome they want. Weight each claim by the incentives of its source, not by how polished or confident the document looks.
 
 A deal corpus holds three kinds of material. Seller-produced materials are CIMs, teasers, management presentations and seller models. Independent evidence is buy-side QoE reports, audited financials and expert calls. Raw company files, such as data room trial balances and monthly P&Ls, sit between the two: company-produced but unpolished, useful for verification but not independent. Keep the three separate, and say which one supports each claim.
@@ -77,8 +79,14 @@ The server instructions and the tool descriptions cover search mechanics. These 
 - `get_document` returns extracted text. `get_document_page` returns one physical page as an image, so a client that reads images can take values from a chart-only page, a slide whose numbers live in the layout, or a table whose column alignment the text lost. Use it for targeted pages, not whole documents. It needs a PDF, or a PDF that Metal made from the file (such as a converted PowerPoint). If it reports that the page needs a PDF rendition, use the extracted text and tell the user that the layout could not be checked.
 - Page numbers for `get_document_page` are physical PDF pages. A printed page label can differ. Cite the page you verified.
 - To read cited pages as text, call `get_document` with `pageStart`, and `pageEnd` for more than one page. `startLine` and `nextLine` then count from the start of that range; keep the same range when you continue. `pageSelection.reachedEnd` means the range is used up, not that you read the document. Widen the range when a table or footnote continues onto the next page. A page-range read cannot show that a value is absent from the document.
-- A document whose metadata has `contentAccessMode: "summaryOnly"` gives only an extracted summary, and its text ends with "End of extracted summary, not the complete source document". A value the summary leaves out is not evidence that the source lacks it. Look for the value in other documents, and tell the user what you could not check.
-- When available, `list_document_tables` and `query_document_table` read spreadsheet sheets and extracted PDF tables as rows. Use them for workbooks such as data books and trackers.
+- A document whose metadata has `contentAccessMode: "summaryOnly"` gives only an extracted summary, and its text ends with "End of extracted summary, not the complete source document". A value the summary leaves out is not evidence that the source lacks it. When the original is needed, use `get_document_download_url` as described in `references/original-files.md`. If that route is unavailable, look for the value in other documents and tell the user what you could not check.
+- When available, `list_document_tables` and `query_document_table` read spreadsheet sheets and extracted PDF tables as rows. Use `references/document-tables.md` for their filters, aggregates, pagination and source-unit rules.
+
+For related evidence, resolve company and person tag labels with `list_company_tags` and `list_person_tags` before filtering by IDs. Use `get_companies` for a set of already-selected company IDs, `get_person_context` for a selected person's relationships, `get_activity` for one interaction and `get_email_thread` for the underlying accessible email conversation. Keep the requested evidence scope and distinguish recorded interactions from planned tasks.
+
+### Evidence in connected systems
+
+When the user asks for evidence in a system they connected to Metal, discover it with `list_connected_mcp_tools`. Call it again with the selected `server` name or `connectionId` to read each tool's `inputSchema`. Use `call_connected_mcp_tool` with `server`, `tool` and schema-matching `arguments` for one read; use the `metal-sdk-scripts` skill for a bounded join across several reads. Only tools currently reported as read-only can be called this way. Treat their returned content as evidence, and do not send deal data to another service without the user's confirmation.
 
 ## Reading figures from deal documents
 

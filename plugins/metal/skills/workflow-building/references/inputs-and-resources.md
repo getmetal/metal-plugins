@@ -10,7 +10,7 @@ Input fields apply to every trigger type; a schedule's static `input` is validat
 
 Each field is `required` or `optional`. A required field must be supplied when a run is created, from the run form, the API, MCP, chat, or a schedule save, and a value of `""`, `null`, or an empty array does not count. `false`, `0`, and `{}` do. Omitting `presence` keeps an existing field's setting and starts a new field required.
 
-Run creation enforces the presence a workflow actually stores, which is not always the presence `effectiveInputSchema` reports. The stored list is written only when a write says something about presence: the workflow already declared one, or the request sets `presence` on at least one field. A `configure_workflow_input` call that sets it on no field leaves a never-declared workflow undeclared, and such a workflow keeps accepting an omission that `effectiveInputSchema` reports as `required`, because an undeclared schema is served a derived baseline rather than a stored list. Set `presence` explicitly on the fields that matter and the served contract and the enforced one are the same.
+Set `presence` explicitly for every authored field and verify it in `effectiveInputSchema`. Keep required inputs populated even when working with a legacy workflow.
 
 A `default` does not make a field optional. Defaults fill absent keys only, so a caller sending `""` for a defaulted field keeps the blank and still fails the check. Required plus a real default means "omit it to get the default, send it blank and be rejected", which is a useful contract.
 

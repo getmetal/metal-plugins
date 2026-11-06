@@ -26,6 +26,7 @@ class RepoFixture(unittest.TestCase):
         for name in ("plugins", ".claude-plugin", ".agents"):
             shutil.copytree(REPO / name, self.tmp / name)
         shutil.copy(REPO / "LICENSE", self.tmp / "LICENSE")
+        shutil.copy(REPO / "README.md", self.tmp / "README.md")
         self.layout = Layout(self.tmp)
         self.skill_md = self.layout.skills / "workflow-debugging" / "SKILL.md"
 
@@ -237,13 +238,14 @@ class SkillTest(RepoFixture):
         self.assert_error("must match its directory")
 
     def test_description_required(self) -> None:
-        self.replace(self.skill_md, "description: Applies", "description:\nx: Applies")
+        description = next(line for line in self.skill_md.read_text().splitlines() if line.startswith("description:"))
+        self.replace(self.skill_md, description, "description:")
         self.assert_error("description must be 1 to")
 
     def test_legacy_name_in_body(self) -> None:
         with self.skill_md.open("a", encoding="utf-8") as f:
             f.write("\nSee metal-workflow-building for edits.\n")
-        self.assert_error("'metal-workflow-building' is a metal-skills name")
+        self.assert_error("'metal-workflow-building' is a builtin skill name")
 
     def test_legacy_name_inside_html_attribute_is_allowed(self) -> None:
         with self.skill_md.open("a", encoding="utf-8") as f:
@@ -251,12 +253,12 @@ class SkillTest(RepoFixture):
         self.assertEqual(check_all(self.layout), [])
 
     def test_legacy_name_in_description(self) -> None:
-        self.replace(self.skill_md, "belong to workflow-building", "belong to metal-workflow-building")
-        self.assert_error(":3: 'metal-workflow-building' is a metal-skills name")
+        self.replace(self.skill_md, "belongs to workflow-building", "belongs to metal-workflow-building")
+        self.assert_error(":3: 'metal-workflow-building' is a builtin skill name")
 
     def test_legacy_name_in_metadata(self) -> None:
-        self.replace(self.skill_md, "\n---\n", "\nmetadata:\n  source: metal-skills skills/metal-workflow-debugging\n---\n")
-        self.assert_error(":5: 'metal-workflow-debugging' is a metal-skills name")
+        self.replace(self.skill_md, "\n---\n", "\nmetadata:\n  source: builtin skills/metal-workflow-debugging\n---\n")
+        self.assert_error(":5: 'metal-workflow-debugging' is a builtin skill name")
 
     def test_broken_reference(self) -> None:
         self.replace(self.skill_md, "references/workflow-run-diagnosis-rubric.md", "references/missing.md")
@@ -303,6 +305,55 @@ class LicenseTest(RepoFixture):
     def test_claude_manifest_names_the_license(self) -> None:
         self.edit_json(self.layout.claude_manifest, lambda m: m.pop("license"))
         self.assert_error("license must be 'Apache-2.0'")
+
+
+class PublicDistributionTest(RepoFixture):
+    def test_every_skill_loads_safety(self) -> None:
+        self.replace(self.skill_md, plugin_repo.SAFETY_LINK, "Safety")
+        self.assert_error("must load the shared safety")
+
+    def test_shared_safety_file_is_packaged(self) -> None:
+        (self.layout.plugin / "references" / "safety.md").unlink()
+        self.assert_error("broken or out-of-plugin Markdown link")
+
+    def test_private_details_are_rejected(self) -> None:
+        examples = {
+            "issue tracker reference": "https://linear.app/example/issue/ABC-1234",
+            "record ID": "0123456789abcdef01234567",
+            "staff-access detail": "org-selection tools",
+            "private repository URL": "https://github.com/getmetal/private-example",
+            "non-public host": "https://staging.example.com/api",
+        }
+        for label, text in examples.items():
+            with self.subTest(label=label):
+                path = self.layout.plugin / "references" / "example.md"
+                path.write_text(text, encoding="utf-8")
+                self.assert_error(f"must not contain a {label}")
+                path.unlink()
+
+    def test_readme_skill_inventories(self) -> None:
+        for path in (self.layout.root / "README.md", self.layout.plugin / "README.md"):
+            with self.subTest(path=path):
+                before = path.read_text()
+                path.write_text(before.replace("`metal:skill-library`", "`metal:missing`").replace("`skill-library`:", "`missing`:"))
+                self.assert_error("skill inventory differs")
+                path.write_text(before)
+
+    def test_missing_skill_link(self) -> None:
+        with self.skill_md.open("a", encoding="utf-8") as f:
+            f.write("\nSee [missing](../missing/SKILL.md).\n")
+        self.assert_error("broken or out-of-plugin Markdown link")
+
+    def test_links_cannot_escape_plugin(self) -> None:
+        with self.skill_md.open("a", encoding="utf-8") as f:
+            f.write("\nSee [root README](../../../../README.md).\n")
+        self.assert_error("broken or out-of-plugin Markdown link")
+
+    def test_subtitle_length(self) -> None:
+        for value in ("x" * 31, "x" * 30 + " ", " ", None):
+            with self.subTest(value=value):
+                self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(shortDescription=value))
+                self.assert_error("interface.shortDescription must be 1 to 30 characters")
 
 
 class PackageTest(RepoFixture):

@@ -47,6 +47,8 @@ Sandbox-enabled agents can use:
 
 Files created in the sandbox must pass through `sandbox_download` to persist beyond the step. User-visible deliverables must then pass through `create_output` using the exact artifact ID returned by `sandbox_download`.
 
+`save_artifact_to_folder` reuses an existing entity only for the same artifact and filename, including seeded artifacts on a rerun from a step. A same-named file from another artifact is a conflict; choose a different filename. A full new run produces a new artifact, so confirm a dated or versioned filename when repeated outputs must coexist. The filename becomes the display name and, where supported, the connected provider's filename.
+
 `sandbox_upload_artifact` handles workflow input files and artifacts from prior steps. `sandbox_upload_data_entity` handles data entity IDs from workflow input, search results, list entries, or another workflow-available source; it accepts an exact absolute `sandbox_path` destination (used verbatim) in addition to the heuristic `path` directory argument. Sandbox upload uses these two tools; there is no `mount_file` or `mount_data_entity`.
 
 ## List Tools
@@ -63,7 +65,7 @@ The built-in Workflow Agent has four list read tools plus one narrow write:
 
 `export_list_entries` fits complete list contents. `browse_list_entries` fits previews or targeted entry inspection.
 
-`update_list_entry` is the one list mutation an autonomous Agent step can perform, so an agent step pointed at a list can write to it without a Tool step and without a human review gate. Build the review gate deliberately when that matters. On a list with write-back enabled, setting a column that maps to a resource property also writes through to the linked deal, company, person, or screening. `get_list` reports whether write-back is on. When it is on, treat the step as editing those records too, and add a human-review step if an unattended run should not do that. The tools that create or destroy list structure are not native: `create_list`, `add_list_entry`, and `delete_list_entry` need a direct Tool step or a custom agent surface.
+`update_list_entry` can change existing list entries from an Agent step. Build an explicit human-review gate for proposed record changes, and include list and connected CRM effects in the user's confirmation before starting the run. Read `get_list` for column mappings; mapped cells can change linked records as well as the list. List-structure changes require tools selected from the current building catalog rather than assuming they are native agent tools.
 
 ## Loadable Skills
 

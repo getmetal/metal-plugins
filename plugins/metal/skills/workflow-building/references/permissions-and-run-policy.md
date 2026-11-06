@@ -1,6 +1,6 @@
 # Permissions And Run Policy
 
-Use this reference when reasoning about who can see, run, or build a workflow, or when a workflow or run appears missing. The environment-and-connection guidance in the SKILL builds on this model.
+Use this reference when reasoning about who can see, run, or build a workflow, or when a workflow or run appears missing. The shared safety reference covers connection checks.
 
 ## General Access And Visibility
 
@@ -12,8 +12,8 @@ Use this reference when reasoning about who can see, run, or build a workflow, o
 
 ## Authoring Policy
 
-- The creator, a direct or team Editor, or an org admin can edit a same-org workflow through the building tools. Public General Access and Viewer shares are read-only. PowerUser has no blanket edit bypass.
-- Internal autonomous callers, including workflow runs, cannot use the authoring surface.
+- The creator, a direct or team Editor, or an org admin can edit a same-org workflow through the building tools. Public General Access and Viewer shares are read-only.
+- Workflow runs cannot use the authoring surface.
 - Source-managed global workflows and deprecated workflows reject authoring writes.
 
 ## Run Policy
@@ -32,4 +32,4 @@ Use this reference when reasoning about who can see, run, or build a workflow, o
 
 ## Not Found Can Mean Denied
 
-A 404 from a workflow read or building tool can be a policy denial rather than a missing workflow: the workflow exists but is not accessible to the current org or actor. Building tools also return 404 for a workflow that exists but fails the org-building check. Confirm org access before concluding a workflow does not exist; see Connection in the SKILL and Error Semantics in `building-tools.md`. A global workflow managed by version control returns 403 ("managed by version control") and cannot be edited through the API.
+A 404 from a workflow read or building tool can be a policy denial rather than a missing workflow: the workflow exists but is not accessible to the current org or actor. Building tools also return 404 for a workflow that exists but fails the org-building check. Confirm org access before concluding a workflow does not exist; see the shared safety reference and Error Semantics in `building-tools.md`. A global workflow managed by version control returns 403 ("managed by version control") and cannot be edited through the API.
