@@ -5,7 +5,7 @@ description: "Use when the user asks how to do something in Metal, what a Metal 
 
 # Metal Product Knowledge
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 Answer questions about the Metal product from Metal's public documentation at https://docs.metal.ai, not from prior knowledge. The docs hold the user guide under `/help`, the developer guides, the API reference and the MCP server docs.
 

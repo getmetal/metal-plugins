@@ -1,11 +1,11 @@
 ---
 name: running-workflows
-description: Applies when a user wants to start, test, validate, or reproduce a Metal workflow through the Metal MCP, rerun a terminal run from a selected step, or approve or reject a paused human-review step, including cases where declared inputs must first be resolved; read-only investigation of an existing run belongs to workflow-debugging.
+description: "Use to start, test or reproduce a Metal workflow through the Metal MCP, resolve its declared inputs, rerun a terminal run from a selected step, cancel a run, or approve or reject a paused human-review step. Use workflow-fixing for a requested repair of a failed workflow and workflow-debugging for read-only run diagnosis."
 ---
 
 # Metal Workflow Running
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 This skill is a reference for the caller side of running a Metal workflow: given a workflow's declared `inputSchema`, how to resolve real user-supplied values into a valid `run_workflow` payload, start the run, and report basic status. The central concern is turning the user's request into values that satisfy the workflow's complete declared schema.
 

@@ -250,7 +250,7 @@ def check_codex_listing_fields(layout: Layout, report: Report) -> None:
         return
     interface = codex.get("interface") or {}
     short_description = interface.get("shortDescription")
-    if not isinstance(short_description, str) or not 1 <= len(short_description.strip()) <= 30:
+    if not isinstance(short_description, str) or not short_description.strip() or len(short_description) > 30:
         report.error(layout.codex_manifest, "interface.shortDescription must be 1 to 30 characters")
     long_description = interface.get("longDescription")
     if not isinstance(long_description, str) or not long_description.strip():

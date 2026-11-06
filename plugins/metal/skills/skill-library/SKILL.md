@@ -5,7 +5,7 @@ description: Metal skills are procedures, templates and house styles that the us
 
 # Metal Skill Library
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 Metal keeps a skill library for each organization. A Metal skill is a SKILL.md document, sometimes with files, written for Metal's in-app assistant. This skill says when to check the library, how to load what you find, and how far to trust it.
 
@@ -87,8 +87,12 @@ A Metal skill can tell you to call a tool by a name you don't have, such as `san
 
 ## Creating or editing Metal skills
 
-`save_skill`, `add_skill_file` and `remove_skill_file` change the user's Metal skills. Use them only when the user explicitly asks you to create or edit a Metal skill, and read the skill with `get_skill` first.
+`save_skill`, `add_skill_file` and `remove_skill_file` change the user's Metal skills. Use them only for a user-requested, confirmed change. Read an existing skill with `get_skill` first; for a new skill, check `list_skills` for name collisions.
 
 - A new skill is private to the user unless they ask for it to be org-wide, which needs an admin.
 - Only the skill's owner or an admin can edit it. Sharing a skill with the user doesn't let them edit it.
 - These tools take only a `name`, which resolves in the same order as `get_skill`. A skill that you could load only by `id` can't be changed with them. Tell the user.
+- `save_skill` requires `name`, `description` and the complete `content`. Omit `expectedVersion` only when creating a new skill. To update, copy `version` from `get_skill` into `expectedVersion`; never omit it as a way to update.
+- `add_skill_file` takes `name`, `path`, UTF-8 `content` and `expectedVersion`. `remove_skill_file` takes `name`, `path` and `expectedVersion`. Copy the effective companion path from `get_skill`; adding an existing path replaces that file.
+- Every successful write returns a new `version`. Use it for the next confirmed write. If a version is stale, re-read the skill, reconcile the concurrent changes and confirm the revised proposal before retrying. Do not overwrite a newer edit with the old body.
+- Omit `isOrgWide` and `isPrivate` on update to preserve visibility. Do not change `allowedTools` as part of an ordinary content edit; it changes the skill's tool-approval settings in Metal and needs a separate, explicit confirmation. Keep model-authored writes marked as such (`modifiedByAgent` defaults to true).

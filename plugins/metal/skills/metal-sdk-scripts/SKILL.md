@@ -5,7 +5,7 @@ description: "Use when a Metal task needs a read-only Python script run through 
 
 # Metal SDK Scripts
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 `run_metal_sdk_query` runs a short Python script inside Metal. The script gets a `metal` object whose methods read the user's Metal data, and returns one compact JSON result. Use it to join, filter or aggregate data that would otherwise take many separate tool calls. This skill says when to use it, how to find methods, what the script may do, and how to stay inside its limits.
 
@@ -145,6 +145,7 @@ rows = metal.query_mcp_tool(input["connectionId"], "search_company", body={"argu
 ```
 
 - The path arguments are the connection ID and the tool name. Get both, and the tool's input schema, from `list_connected_mcp_tools`; its `connectionId` is the connection ID.
+- First list connections, then call `list_connected_mcp_tools` with the selected `server` name or `connectionId` to get its schemas. For a single read, call `call_connected_mcp_tool` with `server`, `tool` and `arguments` instead of starting a script.
 - Wrap the tool's arguments as `body={"arguments": {...}}`. A trailing positional argument is not sent.
 - Metal calls only tools that the server marks read-only.
 - The 10-second wait applies. A slow remote tool fails here even when `call_connected_mcp_tool` could finish it.

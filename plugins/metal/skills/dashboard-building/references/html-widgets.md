@@ -79,8 +79,11 @@ A script or static widget can let the viewer assign, complete or cancel a task i
 
 Put these on their own `<button type="button">`, not on the element that carries a record link; the action wins over the link. Don't write the change in widget JavaScript.
 
-```html
-<button type="button" data-metal-action="task.complete" data-metal-task-id="<task ID from a tool result>">Complete</button>
+```python
+button = (
+    f'<button type="button" data-metal-action="task.complete" '
+    f'data-metal-task-id="{html.escape(task["id"], quote=True)}">Complete</button>'
+)
 ```
 
 When the user wants task management on a dashboard, use a script HTML widget, not an agent template.
@@ -89,8 +92,11 @@ When the user wants task management on a dashboard, use a script HTML widget, no
 
 A button with `data-metal-action="workflow.run"` and `data-metal-workflow-id` (the workflow definition ID, not a run ID) opens Metal's run dialog for that workflow. The viewer reviews the inputs and submits there; clicking the button does not start a run. Don't add input payloads or API calls.
 
-```html
-<button type="button" data-metal-action="workflow.run" data-metal-workflow-id="<workflow ID from a tool result>">Run analysis</button>
+```python
+button = (
+    f'<button type="button" data-metal-action="workflow.run" '
+    f'data-metal-workflow-id="{html.escape(workflow["id"], quote=True)}">Run analysis</button>'
+)
 ```
 
 When you add a workflow action, check whether the dashboard already shows recent runs of that workflow. If not, offer once to add a script table of them. Don't promise that new runs appear immediately; the widget updates on the dashboard's refresh.

@@ -29,7 +29,7 @@ The entrypoint links `/home/sandbox/node_modules` to the preinstalled package se
 
 ## Helper Scripts
 
-The image copies built-in helper scripts into `/opt/sandbox-scripts`, and the entrypoint hydrates them into `/home/sandbox/scripts` on container start. Script groups include `docx_tools`, `pdf_tools`, `pptx_tools`, `xlsx_tools`, `dcf_model_tools`, `redline_validator`, `web_tools`, and shared `office_tools`.
+The image copies built-in helper scripts into `/opt/sandbox-scripts`, and the entrypoint hydrates them into `/home/sandbox/scripts` on container start. Script groups include `docx_tools`, `pdf_tools`, `pptx_tools`, `xlsx_tools`, `redline_validator`, `web_tools`, and shared `office_tools`.
 
 ## Execute-Code Contract
 
@@ -52,7 +52,7 @@ The image copies built-in helper scripts into `/opt/sandbox-scripts`, and the en
 - An executeCode step inside an iterator with concurrency > 1 (the default is 6) must give every path it reads or writes an item-unique value (the item's document ID, itemIndex, or another per-item field), because items run concurrently on the shared sandbox. A constant path is last-writer-wins: concurrent items overwrite each other's staged file and can read another item's data. For example, stage a per-item workbook at /home/sandbox/cmt_<workbook_doc_id>.xlsx, never /home/sandbox/cmt.xlsx.
 - `outputFiles` are the only files the runner publishes from the sandbox. Files left on disk without a declared `outputFiles` entry are not workflow artifacts or run Output records.
 - Exact output paths must exist after the script exits. Missing exact paths fail after script execution.
-- Glob output paths support `*`, `?`, bracket expressions such as `[0-9]`, and recursive `**`. They expand after script execution, return regular files only, sort matches, and fail when they match zero files or more than 25 files. `outputFiles[].filename` is invalid on a glob path. `[` counts as glob syntax everywhere, so it is rejected in the working directory and input paths.
+- Glob output paths support `*`, `?`, bracket expressions such as `[0-9]`, and recursive `**`. They expand after script execution, return regular files only, sort matches, and fail when they match zero files or more than 100 files. `outputFiles[].filename` is invalid on a glob path. `[` counts as glob syntax everywhere, so it is rejected in the working directory and input paths.
 - `outputFiles[].createOutput: true` creates first-class run Output records for matched files and stores successful IDs in `results.outputIds`. Those Output records are what the run UI presents as workflow files.
 
 ## Stable Spreadsheets

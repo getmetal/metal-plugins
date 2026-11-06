@@ -5,7 +5,7 @@ description: Use for Metal investor-relations records (funds, limited partners, 
 
 # Working with Metal IR Records
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 Metal's investor-relations (IR) model has five record types. Choose by the role a record plays in the fundraise, not by the noun the user happened to use.
 

@@ -5,7 +5,7 @@ description: Use when the user asks to run, start or kick off a Metal Routine, o
 
 # Running Metal Routines
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 A Metal Routine is a saved objective that Metal runs as its own Chat session. This skill covers one run from start to output: find the Routine, start it with the right input, check its status, answer what it asks, and read what it produced.
 

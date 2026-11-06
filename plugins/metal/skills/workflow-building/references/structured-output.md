@@ -46,7 +46,7 @@ When a prompt embeds schema JSON, keep the prompt-embedded schema and the step `
 
 ## Output Schema Rules
 
-Write standard JSON Schema. The runner validates the step's output against the schema with a spec-compliant validator, so the keywords the schema carries are enforced at the step boundary. The validation copy also lets an optional property be `null` outside `oneOf` and `anyOf` branches. Keep root schemas as objects, and paste final schema JSON inline when the user needs the JSON.
+Write standard JSON Schema. The runner validates the step's output against the schema with a spec-compliant validator, so the keywords the schema carries are enforced at the step boundary. The validation copy also lets an optional scalar property be `null` outside composition branches; optional arrays and objects stay strict. Keep root schemas as objects, and paste final schema JSON inline when the user needs the JSON.
 
 ### Persisted Keywords
 
@@ -63,6 +63,20 @@ The step's `outputSchema` is compiled at save with the same compiler the runner 
 - Every array includes an `items` schema.
 - Prefer the simplest shape that expresses the contract. Composition and type unions validate, but a simpler schema gives the model less room to produce a valid-but-unintended variant.
 
+- `required` is the strictness lever, and it is read per object: a property left out of the `required` list of **its enclosing object** is optional, at every level — root, nested objects, and array `items` alike. A required property must be present and match its declared type, so `null` fails it unless the property's own declaration admits null.
+
+What an optional property accepts, by how it is declared:
+
+| Optional property | `null` accepted | Spell absence as |
+| --- | --- | --- |
+| Scalar `type` (`string`, `number`, `integer`, `boolean`), with or without `enum`/`const` | yes | `null`, or omit the key |
+| Array or object | no | `[]` or `{}` |
+| No declared `type` — `enum` or `const` alone | no | declare the scalar `type` alongside it |
+| No declared `type` — `oneOf`/`anyOf` alone | no | add a `{"type": "null"}` branch to the composition list |
+| Anything declared inside a `oneOf`/`anyOf` branch | no | write the `["string", "null"]` union on that property yourself |
+
+An optional `{"type": "string"}` therefore needs no `["string", "null"]` union; write one only where the table says `null` is not accepted, or when a `required` property must carry `null`. An explicit `["array", "null"]` or `["object", "null"]` union does validate — prefer `[]`/`{}` anyway, because a null array or object turns a precise failure at this step into a template traversal crash, or an iterator that silently yields zero items and reports success, several steps later. Nothing inside a `oneOf`/`anyOf` branch is widened, because loosening one branch can make a payload match two branches where it used to match one.
+
 ### Constraint Keywords
 
 Value constraints (`minimum`, `maximum`, `pattern`, `minLength`, `maxLength`, `minItems`, `maxItems`, `uniqueItems`) are always enforced at validation. Whether the model sees them during generation depends on the step type. An agent step's submission tool carries the schema as authored, so the constraints reach the model. An Anthropic completion step strips value constraints and `default` from the generation-side schema, and OpenAI runs non-strict. A constraint the model cannot see or infer surfaces as coercion, a retry, or a loud step failure.
@@ -76,6 +90,7 @@ Value constraints (`minimum`, `maximum`, `pattern`, `minLength`, `maxLength`, `m
 
 When inferring a schema from an example object:
 
+- An example shows fields that can appear, not fields that always exist. Ask which fields can be absent before deciding `required`.
 - Strings to `string`; booleans to `boolean`; numbers to `number` (use `integer` for clearly integral fields).
 - Objects to a fixed object with recursive `properties` and `required`.
 - Arrays to `array` with `items` inferred from the first element; merge keys across all objects when an array holds objects.

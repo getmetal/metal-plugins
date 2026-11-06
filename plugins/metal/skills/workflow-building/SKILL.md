@@ -1,11 +1,11 @@
 ---
 name: workflow-building
-description: Applies when a Metal workflow definition, step configuration, input or output contract, or trigger must be inspected or changed through the Metal MCP; starting or acting on a run belongs to running-workflows, and read-only run diagnosis belongs to workflow-debugging.
+description: "Use to inspect or author a Metal workflow definition, step configuration, input or output contract, or trigger through the Metal MCP. Use workflow-fixing for a requested repair of a failed run, workflow-debugging for read-only run diagnosis, and running-workflows for run actions."
 ---
 
 # Metal Workflow Building
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 This skill is a reference for Metal workflow definitions, run evidence, execution code, and artifacts. The central building concern is the runtime contract: what workflow inputs resolve to, what each step emits, and what downstream steps consume.
 

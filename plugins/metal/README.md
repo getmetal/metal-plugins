@@ -1,6 +1,6 @@
 # Metal
 
-The Metal plugin connects Claude or Codex to the Metal MCP server at `https://mcp.metal.ai/mcp`. You sign in to Metal through the server's OAuth flow when you first use a Metal tool.
+The Metal plugin connects Claude, Codex or ChatGPT Work to the Metal MCP server at `https://mcp.metal.ai/mcp`. Connect your Metal account through the server's OAuth flow when the client prompts you.
 
 ## Install
 

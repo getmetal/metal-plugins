@@ -1,11 +1,11 @@
 ---
 name: workflow-debugging
-description: Applies when a user provides a Metal workflow run ID or asks why an existing run behaved as it did, including failures, missing tool calls, artifacts, outputs, approval state, or definition drift; it is read-only, while workflow edits and run actions belong to workflow-building and running-workflows.
+description: "Use for read-only diagnosis of an existing Metal workflow run: explain failures, missing tool calls, artifacts, outputs, approvals or definition drift. When the user wants a failed workflow repaired, use workflow-fixing. Definition authoring belongs to workflow-building; starting, rerunning, canceling or reviewing a run belongs to running-workflows."
 ---
 
 # Metal Workflow Debugging
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 Use this skill when the user provides a run ID or asks a runtime-behavior question. Answer the user's direct behavior question from MCP run evidence first, then locate the fix surface. Conclusions about run or live-definition behavior require MCP-backed evidence.
 

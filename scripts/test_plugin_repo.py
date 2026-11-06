@@ -238,7 +238,8 @@ class SkillTest(RepoFixture):
         self.assert_error("must match its directory")
 
     def test_description_required(self) -> None:
-        self.replace(self.skill_md, "description: Applies", "description:\nx: Applies")
+        description = next(line for line in self.skill_md.read_text().splitlines() if line.startswith("description:"))
+        self.replace(self.skill_md, description, "description:")
         self.assert_error("description must be 1 to")
 
     def test_legacy_name_in_body(self) -> None:
@@ -252,7 +253,7 @@ class SkillTest(RepoFixture):
         self.assertEqual(check_all(self.layout), [])
 
     def test_legacy_name_in_description(self) -> None:
-        self.replace(self.skill_md, "belong to workflow-building", "belong to metal-workflow-building")
+        self.replace(self.skill_md, "belongs to workflow-building", "belongs to metal-workflow-building")
         self.assert_error(":3: 'metal-workflow-building' is a builtin skill name")
 
     def test_legacy_name_in_metadata(self) -> None:
@@ -349,8 +350,10 @@ class PublicDistributionTest(RepoFixture):
         self.assert_error("broken or out-of-plugin Markdown link")
 
     def test_subtitle_length(self) -> None:
-        self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(shortDescription="x" * 31))
-        self.assert_error("interface.shortDescription must be 1 to 30 characters")
+        for value in ("x" * 31, "x" * 30 + " ", " ", None):
+            with self.subTest(value=value):
+                self.edit_json(self.layout.codex_manifest, lambda m: m["interface"].update(shortDescription=value))
+                self.assert_error("interface.shortDescription must be 1 to 30 characters")
 
 
 class PackageTest(RepoFixture):

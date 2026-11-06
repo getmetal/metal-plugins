@@ -5,7 +5,7 @@ description: "Use when a user wants to create or change a Metal canvas dashboard
 
 # Metal Dashboard Building
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 A Metal canvas dashboard is a free-standing dashboard of widgets. Each widget has a type, a data source, a title and a position on a 12-column grid. This skill says how to choose the type and data source, what to confirm with the user, and how to add and edit widgets with the Metal dashboard tools. The output contracts that the tool schemas do not carry are in the references.
 

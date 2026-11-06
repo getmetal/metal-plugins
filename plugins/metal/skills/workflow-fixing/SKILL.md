@@ -5,7 +5,7 @@ description: "Use when a Metal workflow run failed and the user wants the workfl
 
 # Metal Workflow Fixing
 
-Before using Metal tools, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
+Before starting, read [Safety and confirmation](../../references/safety.md) and apply it throughout this task.
 
 Use this skill when the user brings a failed run and wants the workflow fixed. The goal is a workflow definition that runs successfully, proven by a dry run before any live run.
 

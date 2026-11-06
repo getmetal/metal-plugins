@@ -47,6 +47,8 @@ Sandbox-enabled agents can use:
 
 Files created in the sandbox must pass through `sandbox_download` to persist beyond the step. User-visible deliverables must then pass through `create_output` using the exact artifact ID returned by `sandbox_download`.
 
+`save_artifact_to_folder` reuses an existing entity only for the same artifact and filename, including seeded artifacts on a rerun from a step. A same-named file from another artifact is a conflict; choose a different filename. A full new run produces a new artifact, so confirm a dated or versioned filename when repeated outputs must coexist. The filename becomes the display name and, where supported, the connected provider's filename.
+
 `sandbox_upload_artifact` handles workflow input files and artifacts from prior steps. `sandbox_upload_data_entity` handles data entity IDs from workflow input, search results, list entries, or another workflow-available source; it accepts an exact absolute `sandbox_path` destination (used verbatim) in addition to the heuristic `path` directory argument. Sandbox upload uses these two tools; there is no `mount_file` or `mount_data_entity`.
 
 ## List Tools
