@@ -7,8 +7,8 @@ on:
 
 env:
   # Pinned so a new Claude Code or Codex release cannot change the verdict unannounced.
-  CLAUDE_CODE_VERSION: 2.1.311
-  CODEX_VERSION: 0.164.0
+  CLAUDE_CODE_VERSION: 2.1.319
+  CODEX_VERSION: 0.167.0
 
 jobs:
   check:
