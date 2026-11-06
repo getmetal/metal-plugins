@@ -114,8 +114,6 @@ For the resolver mode, review authorization follows the assignment state:
 - A missing, failed, or stale resolver assignment allows an org admin to review.
 - Resolver failure logs a warning and leaves the workflow paused without an assigned reviewer; it does not fail the workflow.
 
-Metal Team gets no admin fallback on a live run. On a dry run, a Metal Team actor can approve or reject the active step whatever the reviewer mode, because dry-run writes never execute.
-
 Approval notifications use a separate rule. With `reviewerUserIds`, every active listed user receives the notification, and the triggerer does not unless listed. With a resolver, the assigned active Metal user receives it. When the step has neither a list nor an assignment object, the run's triggering user receives it, or the attribution initiator for an attributed automation run. A stale assignment has an assignment object but no valid notification recipient, so nobody receives the notification even though an org admin can review. A dry run sends no approval notification.
 
 Building documents this configuration and its safety semantics. Review actions and monitoring on a paused run belong to the `running-workflows` skill; run diagnosis stays read-only in `workflow-debugging`.
