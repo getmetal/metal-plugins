@@ -12,10 +12,8 @@ For run-behavior diagnosis from a run ID, use the `workflow-debugging` skill. Wo
 ## Connection
 
 - This skill operates through a connected Metal MCP. If more than one Metal MCP is connected, pick one for the task and do not mix them.
-- Servers differ by tool surface, not workflow tool behavior: a server whose tools take a required `orgId` argument, discoverable with `get_orgs`, serves multiple orgs; a server without `orgId` is bound to a single org.
-- On a single-org server: if tools are missing or fail to connect, the Metal MCP may not be connected, may be disabled for the org, or the user may be authed against a different org. Ask the user to confirm before concluding anything is broken, and direct them to re-auth when access looks wrong. If tools work but a workflow or run cannot be found or run, a not-found response can be a policy denial: the workflow exists but is out of the current org's access scope. Ask the user to confirm org access before concluding the workflow does not exist.
-- On a multi-org server: every org-scoped tool call names its org in `orgId`. There is no session-level org binding, so each call is scoped on its own and calls can target different orgs. Find org IDs with `get_orgs`. A call without `orgId` fails with an error that names the missing argument. Each call acts as your own user in that org, which must hold the Metal Team role there; otherwise the call fails with an error that asks you to add yourself to that org. Access-policy gates are broadly bypassed on this server, so a not-found response usually means the wrong `orgId` or a resource that does not exist.
-- Never proceed against an org the thread has not confirmed; this includes every `orgId` you pass.
+- If tools are missing or fail to connect, the Metal MCP may not be connected, may be disabled for the org, or the user may be authed against a different org. Ask the user to confirm before concluding anything is broken, and direct them to re-auth when access looks wrong. If tools work but a workflow or run cannot be found or run, a not-found response can be a policy denial: the workflow exists but is out of the current org's access scope. Ask the user to confirm org access before concluding the workflow does not exist.
+- Never proceed against an org the thread has not confirmed.
 
 ## Metal MCP Tools
 
