@@ -2,13 +2,16 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Build the release zip that a claude.ai admin uploads.
+"""Build the existing release ZIP, the OpenAI submission ZIP, or both.
 
-The zip holds the plugin directory's contents at its root, so
-.claude-plugin/plugin.json is at the top of the archive. Entries are sorted
-and carry a fixed timestamp, so the same tree always gives the same bytes.
+The existing ZIP holds the plugin directory's contents at its root; the OpenAI
+ZIP replaces the compatibility manifests with portable manifests. Entries are
+sorted and carry a fixed timestamp, so the same inputs and build environment
+produce the same bytes.
 
   python3 scripts/package.py                 build dist/metal-<version>.zip
+  python3 scripts/package.py --format openai build dist/metal-openai-<version>.zip
+  python3 scripts/package.py --format all --release-notes /path/to/notes.md
   python3 scripts/package.py --print-version print the plugin version
   python3 scripts/package.py --print-tag     print the release tag
 """
@@ -36,14 +39,37 @@ def plugin_files(plugin: Path) -> list[Path]:
 
 def build(layout: Layout, dist: Path) -> Path:
     version = plugin_version(layout)
-    dist.mkdir(parents=True, exist_ok=True)
-    target = dist / f"{PLUGIN_NAME}-{version}.zip"
+    files = {path.relative_to(layout.plugin).as_posix(): path.read_bytes() for path in plugin_files(layout.plugin)}
+    return write_zip(dist / f"{PLUGIN_NAME}-{version}.zip", files)
+
+
+def write_zip(target: Path, files: dict[str, bytes]) -> Path:
+    """Use the same order, timestamps and permissions for both formats."""
+    target.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in plugin_files(layout.plugin):
-            info = zipfile.ZipInfo(path.relative_to(layout.plugin).as_posix(), FIXED_TIME)
+        for name, data in sorted(files.items()):
+            info = zipfile.ZipInfo(name, FIXED_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            archive.writestr(info, path.read_bytes())
+            archive.writestr(info, data)
+    return target
+
+
+def build_openai(layout: Layout, dist: Path, release_notes: str | None = None) -> Path:
+    # The existing ZIP and version/tag queries still need only the standard library.
+    import openai_package
+
+    files = openai_package.package_files(layout, release_notes)
+    target = dist / f"{PLUGIN_NAME}-openai-{plugin_version(layout)}.zip"
+    errors = openai_package.validate_files(files, layout, release_notes)
+    if errors:
+        raise ValueError("\n".join(errors))
+    write_zip(target, files)
+    # Inspect the actual artifact, including the copied content, before returning it.
+    errors = openai_package.validate_archive(target, layout, release_notes)
+    if errors:
+        target.unlink()
+        raise ValueError("\n".join(errors))
     return target
 
 
@@ -51,8 +77,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--print-version", action="store_true")
     parser.add_argument("--print-tag", action="store_true")
+    parser.add_argument("--format", choices=("default", "openai", "all"), default="default")
+    parser.add_argument("--release-notes", type=Path, help="UTF-8 file; also used as the GitHub release body in CI")
     parser.add_argument("--dist", type=Path, default=REPO / "dist")
     args = parser.parse_args()
+    if args.release_notes is not None and args.format == "default":
+        parser.error("--release-notes requires --format openai or all")
 
     layout = Layout()
     if args.print_version:
@@ -66,7 +96,15 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(build(layout, args.dist))
+    try:
+        notes = args.release_notes.read_text(encoding="utf-8") if args.release_notes is not None else None
+        if args.format in {"openai", "all"}:
+            print(build_openai(layout, args.dist, notes))
+        if args.format in {"default", "all"}:
+            print(build(layout, args.dist))
+    except (OSError, ValueError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
     return 0
 
 
