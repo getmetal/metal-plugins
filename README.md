@@ -52,6 +52,7 @@ Workspace import uses the admin's authorized GitHub account. Each member connect
 ## Checks
 
 ```sh
+python3 -m pip install -r scripts/requirements.txt
 python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 scripts/check.py
 claude plugin validate --strict ./plugins/metal
@@ -64,10 +65,43 @@ python3 scripts/codex_install_check.py
 Codex has no validate command, so `scripts/codex_install_check.py` installs the plugin with the Codex CLI in a temporary `CODEX_HOME`. It renders the prompt Codex would send with `codex debug prompt-input`, and fails unless every skill in `skills/` is listed there and `codex mcp list` has the Metal MCP server. It needs no credentials. It reads the prompt, not the plugin cache, because Codex copies the whole plugin into its cache, including skill directories its manifest does not list.
 
 CI runs the same commands on every pull request, with Claude Code and Codex pinned.
+It also builds and checks both release ZIP formats. OpenAI builds use the vendored
+Agent Plugins 1.0 schemas and additional checks for OpenAI listing fields and OAuth.
 
 ## Releases
 
-To release, set the same new `version` in both manifests and merge to `main`. CI then builds `metal-<version>.zip` and publishes it in a GitHub release tagged `metal--v<version>`. If that release already exists, CI does nothing. To build the zip locally, run `python3 scripts/package.py`. The zip holds the plugin directory's contents at its root.
+To release, set the same new `version` in both manifests and merge to `main`.
+CI generates release notes once and publishes a GitHub release tagged
+`metal--v<version>` with both artifacts:
+
+- `metal-<version>.zip`: the existing plugin layout, including the Claude and Codex manifests.
+- `metal-openai-<version>.zip`: the portable OpenAI upload, with generated root
+  `plugin.json` and `mcp.json`, plus the shared skills, references, assets and license.
+
+The OpenAI ZIP includes the same release-note text used as the GitHub release body.
+If the version's release already exists, CI does nothing. Existing releases are
+not changed or backfilled; bump both manifest versions for the next release.
+
+Build locally after installing the dependencies above:
+
+```sh
+python3 scripts/package.py                         # Existing ZIP; standard library only
+python3 scripts/package.py --format openai         # OpenAI ZIP, without release notes
+python3 scripts/package.py --format all --release-notes /path/to/release-notes.md
+```
+
+Both formats put the plugin contents at the archive root. The OpenAI manifests
+are generated from the existing source, not maintained as a second plugin copy.
+OAuth uses DCR with discovery-provided endpoints and scopes; builds require no
+network access, account credentials or OAuth registration.
+
+The OpenAI build checks the saved archive's inventory, copied content, manifests,
+listing limits and referenced files. It does not complete OpenAI's portal scans
+or review. Test cases, a demo URL and reviewer access still need to be prepared
+before submission; this build leaves missing review metadata absent. Reviewer
+credentials belong only in the portal's secure fields. GitHub releases do not
+submit or publish the plugin in OpenAI's directory. See
+[OpenAI's submission and update process](https://developers.openai.com/plugins/deploy/submission).
 
 ## License
 

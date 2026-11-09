@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install packaging dependencies
+        run: python3 -m pip install -r scripts/requirements.txt
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -28,8 +33,8 @@ jobs:
           npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" plugin validate --strict .
       - name: Install with Codex
         run: python3 scripts/codex_install_check.py npx -y "@openai/codex@${CODEX_VERSION}"
-      - name: Build the release zip
-        run: python3 scripts/package.py
+      - name: Build both release ZIPs
+        run: python3 scripts/package.py --format all
 
   release:
     needs: check
@@ -39,6 +44,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - name: Resolve version and tag
         id: version
         run: |
@@ -56,9 +64,22 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Build the release zip
+      - name: Install packaging dependencies
         if: steps.existing.outputs.exists == 'false'
-        run: python3 scripts/package.py
+        run: python3 -m pip install -r scripts/requirements.txt
+      - name: Generate shared release notes
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="$GITHUB_SHA" \
+            --jq .body > "$RUNNER_TEMP/metal-release-notes.md"
+      - name: Build both release ZIPs
+        if: steps.existing.outputs.exists == 'false'
+        run: python3 scripts/package.py --format all --release-notes "$RUNNER_TEMP/metal-release-notes.md"
       - name: Publish the release
         if: steps.existing.outputs.exists == 'false'
         env:
@@ -66,7 +87,8 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
         run: >
-          gh release create "$TAG" "dist/metal-${VERSION}.zip"
+          gh release create "$TAG"
+          "dist/metal-${VERSION}.zip" "dist/metal-openai-${VERSION}.zip"
           --target "$GITHUB_SHA"
           --title "metal v${VERSION}"
-          --generate-notes
+          --notes-file "$RUNNER_TEMP/metal-release-notes.md"
