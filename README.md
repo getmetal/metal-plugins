@@ -4,9 +4,11 @@ This repository holds the `metal` plugin and a `metal` marketplace for Claude, C
 
 ## Install
 
-**Claude desktop app (Chat and Cowork):** open Customize > Plugins, select + Add > Add marketplace, enter `getmetal/metal-plugins` and keep Sync automatically on. Add the Metal plugin, then open its Connectors tab and connect Metal. Each member installs the plugin for their own account.
+**Claude desktop app (Chat and Cowork):** each member can install the plugin for their own account. Open Customize > Plugins, select + Add > Add marketplace, enter `getmetal/metal-plugins` and keep Sync automatically on. Add the Metal plugin, then open its Connectors tab and connect Metal. Sync automatically installs new versions.
 
-**ChatGPT desktop app (Work mode or Codex):** a workspace admin opens Admin > Plugins > Add > Import marketplace and enters `https://github.com/getmetal/metal-plugins`, leaving Path empty. Review the import and installation policy; members then install Metal from the Plugins directory. For personal testing, add this repository as a marketplace in the desktop app. See [OpenAI's GitHub import documentation](https://learn.chatgpt.com/docs/enterprise/plugin-management) and [local marketplace documentation](https://developers.openai.com/plugins/build/plugins). Git-imported plugins that declare MCP servers can be marked Desktop only; check the plugin's supported surfaces in your client. This repository's install check verifies Codex CLI loading, not Chat-mode tool access.
+To install the plugin for a whole Claude organization, an Owner or Primary Owner downloads `metal-<version>.zip` (not `metal-openai-<version>.zip`) from this repository's [releases](https://github.com/getmetal/metal-plugins/releases). The Owner uploads it in Organization settings > Plugins & skills > Add > Upload a plugin, then sets Default access on the Inventory tab. Claude doesn't add the plugin's connector, so the Owner also adds the Metal connector in Organization settings > Connectors if the organization doesn't have it. An uploaded plugin doesn't update from this repository; the Owner uploads each new release ZIP. Organization settings > Plugins & skills > Sync from GitHub doesn't work with this repository, because Claude syncs only private or internal repositories.
+
+**ChatGPT desktop app (Work mode or Codex):** a workspace admin imports `https://github.com/getmetal/metal-plugins` at Workspace settings > Plugins > Marketplaces and keeps Auto-sync on. Members then open Customize > Plugins, select the tab with the workspace's name and add Metal. Without the import, a member adds the marketplace from the Personal tab with Add > Add a marketplace, leaving Git ref and Sparse paths empty. Updates on that route are manual: Settings > Plugins > Marketplace > Upgrade. The plugin's tools don't work in Chat mode, and ChatGPT marks the plugin as working only in ChatGPT Desktop.
 
 **Command line:**
 
@@ -17,7 +19,7 @@ codex plugin marketplace add getmetal/metal-plugins
 codex plugin add metal@metal
 ```
 
-Workspace import uses the admin's authorized GitHub account. Each member connects their own Metal account when prompted.
+Members need no GitHub account. ChatGPT's workspace import uses the admin's authorized GitHub account. Each member connects their own Metal account when prompted.
 
 ## Skills
 
