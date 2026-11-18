@@ -24,7 +24,9 @@ Standard agents receive these platform-defined baseline tools in addition to the
 
 Default reach: general workflow work that needs tools, retrieval, files, source-backed reasoning, or artifact creation.
 
-Native tools include `halt_workflow`, `create_output`, `get_document`, `download_file`, `platform_ls`, `search_folders`, `resolve_folder_path`, `create_folder`, `move_data_entity`, `set_deal_folder`, `save_artifact_to_folder`, `ingest_email_attachment`, user and record tools (`group:users`, `group:records`), sandbox tools (`group:sandbox`), and the list tools below. Through `find_capabilities` and `call_tool` it can also reach a few read-only workflow and prompt tools: `get_workflow`, `get_workflow_step`, `get_workflow_run`, `get_workflow_run_step`, `list_workflow_runs`, `get_prompt`, and `list_prompts`. It uses `find_capabilities` to discover loadable skills.
+Native tools include `halt_workflow`, `create_output`, `get_document`, `get_document_page`, `download_file`, `platform_ls`, `search_folders`, `resolve_folder_path`, `create_folder`, `move_data_entity`, `set_deal_folder`, `save_artifact_to_folder`, `ingest_email_attachment`, user and record tools (`group:users`, `group:records`), sandbox tools (`group:sandbox`), and the list tools below. Through `find_capabilities` and `call_tool` it can also reach a few read-only workflow and prompt tools: `get_workflow`, `get_workflow_step`, `get_workflow_run`, `get_workflow_run_step`, `list_workflow_runs`, `get_prompt`, and `list_prompts`. It uses `find_capabilities` to discover loadable skills.
+
+`get_document` reads a page range with `page_start` and `page_end`, sizes each result to fit the agent's context, and ends each result with the exact call that continues the read. `get_document_page` renders one PDF page as an image, for charts, scanned tables, and layout that the extracted text loses. A step prompt can name a page and require either tool.
 
 The `platform` connection is appended automatically for Agent steps unless disabled by saved configuration. Resource references in the step input do not infer strict-mode filters.
 
