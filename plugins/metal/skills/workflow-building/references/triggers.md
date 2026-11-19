@@ -24,7 +24,7 @@ Runs on a cadence. `schedules` contains one to 25 schedules; edit a schedule by 
 
 ### webhook
 
-Provisions an authenticated HTTP endpoint at `POST /webhooks/workflows/:slug`. The URL and a secret preview are returned as transient fields on the trigger (`webhookUrl`, `webhookSecretPreview`); they are not persisted on the definition. The request injects input at `.Input.webhook.payload`, `.Input.webhook.headers`, and `.Input.webhook.query`.
+Provisions an authenticated HTTP endpoint at `POST /webhooks/workflows/:slug`. The URL is returned as the transient trigger field `webhookUrl`; it is not persisted on the definition. The MCP tools never return the secret or any part of it. A person gets the secret once in the Metal app, when the workflow builder saves the webhook trigger or generates a new secret, so direct the user there to set up the sending system. The request injects input at `.Input.webhook.payload`, `.Input.webhook.headers`, and `.Input.webhook.query`.
 
 - `signatureScheme` is `shared_secret` (default) or `hmac_sha256`. `signatureHeader` selects a custom authentication header.
 - Shared-secret authentication defaults to `X-Metal-Webhook-Secret`; with that default header, `Authorization: Bearer <secret>` also works.
